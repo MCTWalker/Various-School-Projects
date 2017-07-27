@@ -77,10 +77,13 @@
 	        .asg   "bit.b #0x10,&P3OUT",GREEN2_TEST
 
 COUNT       .equ     -25000                    ; delay count
+FIFTHSECCOUNT .equ   2
 ONESECCOUNT .equ     10
 FIVESECCOUNT .equ    50
 TENSECCOUNT .equ     100
 TWENTYSECCOUNT .equ  200
+SLOWFLASHCOUNT         .equ     6
+FASTFLASHCOUNT         .equ     20
 
 
 ;------------------------------------------------------------------------------
@@ -113,7 +116,7 @@ mainloop:   RED_OFF
 		    GREEN_ON
 			RED2_ON
 			GREEN2_OFF
-            call #twentySecDelay
+            call #oneSecDelay
 yellowState: GREEN_OFF
             YELLOW_ON
             call #fiveSecDelay
@@ -130,10 +133,29 @@ on:     	RED2_OFF
 			ORANGE_OFF
 			GREEN2_ON
 			call #fiveSecDelay
+			call #toggleSlow
+			call #toggleFast
 			jmp mainloop
 
-toggleGREEN2:
+toggleSlow: push.w r14
+            mov.w #SLOWFLASHCOUNT, r14
 
+slowGreenFlash: xor.b #0x10,&P3OUT
+            call #oneSecDelay
+			sub.w #1, r14
+			jne slowGreenFlash
+			pop.w r14
+			ret
+
+toggleFast: push.w r14
+            mov.w #FASTFLASHCOUNT, r14
+
+fastGreenFlash: xor.b #0x10,&P3OUT
+            call #fifthSecDelay
+			sub.w #1, r14
+			jne fastGreenFlash
+			pop.w r14
+			ret
 
 twentySecDelay: push.w r14
 				mov.w   #TWENTYSECCOUNT, r14
@@ -159,6 +181,15 @@ oneSecDelay: push.w r14
 oneSecLoop:  call #delay
 			sub.w   #1, r14
 			jne     oneSecLoop
+			pop.w   r14
+			ret
+
+fifthSecDelay: push.w r14
+			 mov.w #FIFTHSECCOUNT, r14
+
+fifthSecLoop:  call #delay
+			sub.w   #1, r14
+			jne     fifthSecLoop
 			pop.w   r14
 			ret
 
@@ -189,4 +220,3 @@ P1_ISR:     bic.b  #0x01,&P1IFG          ; clear P1.0 Interrupt Flag
             .sect   ".reset"                ; MSP430 RESET Vector
             .word   RESET                   ; start address
             .end
-
