@@ -77,6 +77,7 @@
 	        .asg   "bit.b #0x10,&P3OUT",GREEN2_TEST
 
 COUNT       .equ     -25000                    ; delay count
+ONESECCOUNT .equ     10
 FIVESECCOUNT .equ    50
 TENSECCOUNT .equ     100
 TWENTYSECCOUNT .equ  200
@@ -108,17 +109,31 @@ RESET:      mov.w   #__STACK_END,SP         ; init stack pointer
         	RED2_OFF
         	GREEN_OFF
 
-mainloop:   GREEN_ON
+mainloop:   RED_OFF
+		    GREEN_ON
 			RED2_ON
+			GREEN2_OFF
             call #twentySecDelay
-            GREEN_OFF
+yellowState: GREEN_OFF
             YELLOW_ON
             call #fiveSecDelay
-            YELLOW_OFF
+redState:   YELLOW_OFF
             RED_ON
-            call #fiveSecDelay
-            RED_OFF
-            jmp mainloop
+            bit.b  #0x02,&P4OUT          ; orange LED on?
+            	jeq  off                   ; n
+            jmp    on                    ; y
+
+off:		call #fiveSecDelay
+			jmp mainloop
+
+on:     	RED2_OFF
+			ORANGE_OFF
+			GREEN2_ON
+			call #fiveSecDelay
+			jmp mainloop
+
+toggleGREEN2:
+
 
 twentySecDelay: push.w r14
 				mov.w   #TWENTYSECCOUNT, r14
@@ -135,6 +150,15 @@ fiveSecDelay: push.w r14
 fiveSecLoop:  call #delay
 			sub.w   #1, r14
 			jne     fiveSecLoop
+			pop.w   r14
+			ret
+
+oneSecDelay: push.w r14
+			 mov.w #ONESECCOUNT, r14
+
+oneSecLoop:  call #delay
+			sub.w   #1, r14
+			jne     oneSecLoop
 			pop.w   r14
 			ret
 
@@ -165,3 +189,4 @@ P1_ISR:     bic.b  #0x01,&P1IFG          ; clear P1.0 Interrupt Flag
             .sect   ".reset"                ; MSP430 RESET Vector
             .word   RESET                   ; start address
             .end
+
