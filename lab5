@@ -76,10 +76,10 @@
 	        .asg   "xor.b #0x10,&P3OUT",GREEN2_TOGGLE
 	        .asg   "bit.b #0x10,&P3OUT",GREEN2_TEST
 
-COUNT       .equ     33000                     ; delay count
-FIVESECCOUNT .equ    61
-TENSECCOUNT .equ     122
-TWENTYSECCOUNT .equ  244
+COUNT       .equ     -25000                    ; delay count
+FIVESECCOUNT .equ    50
+TENSECCOUNT .equ     100
+TWENTYSECCOUNT .equ  200
 
 
 ;------------------------------------------------------------------------------
@@ -165,4 +165,3 @@ P1_ISR:     bic.b  #0x01,&P1IFG          ; clear P1.0 Interrupt Flag
             .sect   ".reset"                ; MSP430 RESET Vector
             .word   RESET                   ; start address
             .end
-	    
