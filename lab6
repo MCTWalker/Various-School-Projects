@@ -82,21 +82,56 @@ main_asm:   mov.w   #WDT_CTL,&WDTCTL        ; set WD timer interval
             bis.w   #GIE,SR                 ; enable interrupts
             mov.w   #WDT_IPS, &second_cnt
 
-; output 'A' in morse code (DOT, DASH, space)
-loop:       mov.w   #ELEMENT,r15            ; output DOT
+loop:       mov.w   #message, r4
+;loop:      call    #doDot
+;           call    #doDash
+;           call    #doSpace
+;            jmp     loop
+
+loop2:      mov.b   @r4+,r5
+			sub.w   #'A',r5
+			add.w   r5,r5
+			mov.w   letters(r5),r5
+
+loop3:      mov.b   @r5+,r6
+            cmp.b   #DOT,r6
+              jeq   loop4
+            cmp.b   #DASH, r6
+              jeq   loop5
+            cmp.b   #END, r6
+              jeq   loop6
+            jmp     loop
+
+loop4:      call    #doDot
+            jmp     loop3
+
+loop5:      call    #doDash
+            jmp     loop3
+
+loop6:      call    #doSpace
+			jmp     loop
+
+doDot:      push.w  r15
+            mov.w   #ELEMENT,r15            ; output DOT
             call    #beep
             mov.w   #ELEMENT,r15            ; delay 1 element
             call    #delay
+            pop.w   r15
+            ret
 
-doDot:
+doDash:     push.w  r15
             mov.w   #ELEMENT*3,r15          ; output DASH
             call    #beep
             mov.w   #ELEMENT,r15            ; delay 1 element
             call    #delay
+            pop.w   r15
+            ret
 
+doSpace:    push.w  r15
             mov.w   #ELEMENT*7,r15          ; output space
             call    #delay                  ; delay
-            jmp     loop                    ; repeat
+            pop.w   r15
+            ret
 ; end main function ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
@@ -145,3 +180,4 @@ WDT_10:     reti                            ; return from interrupt
             .sect   ".reset"                ; PUC Vector
             .word   RESET                   ; RESET ISR
             .end
+
