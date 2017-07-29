@@ -34,6 +34,8 @@
 	        .asg   "xor.b #0x10,&P3OUT",GREEN_TOGGLE
 	        .asg   "bit.b #0x10,&P3OUT",GREEN_TEST
 
+	        .asg   "xor.b #0x02,&P4OUT",ORANGE_TOGGLE
+
 ; System equates --------------------------------------------------------------
             .cdecls C,"msp430.h"            ; include c header
             .def    RESET                   ; Export program entry-point to linker
@@ -60,7 +62,7 @@ ELEMENT     .equ    ((WDT_IPS*240)/1000)    ; (WDT_IPS * 6 / WPM) / 5
 
 ; Program section -------------------------------------------------------------
             .text                           ; program section
-message:    .string "PARIS"                 ; PARIS message
+message:    .string "HELLO CS 224 WORLD "                 ; PARIS message
             .byte   0
             .align  2                       ; align on word boundary
 
@@ -68,6 +70,16 @@ message:    .string "PARIS"                 ; PARIS message
 RESET:      mov.w   #STACK,SP               ; initialize stack pointer
 			GREEN_OFF
 			RED_OFF
+			bic.b   #0x01,&P1SEL           ; select GPIO
+            bic.b   #0x01,&P1DIR           ; configure P1.0 as inputs
+            bis.b   #0x01,&P1OUT           ; use pull-up
+            bis.b   #0x01,&P1REN           ; enable pull-up
+            bis.b   #0x01,&P1IES           ; trigger on high to low transition
+            bis.b   #0x01,&P1IE            ; P1.0 interrupt enabled
+            bic.b   #0x01,&P1IFG           ; P1.0 IFG cleared
+
+            bis.w   #GIE,SR                  ; enable general interrupts
+
 			bis.b   #0x4f,&P4DIR            ; set P4.0-3,6 as output
 			bis.b   #0x10,&P3DIR            ; set P3.4 as output
             call    #main_asm               ; call main function
@@ -89,9 +101,19 @@ loop:       mov.w   #message, r4
 ;            jmp     loop
 
 loop2:      mov.b   @r4+,r5
-			sub.w   #'A',r5
+			cmp.b   #32, r5
+			  jeq   loop6
+			cmp.b   #58, r5
+			  jl    number
+
+letter:	    sub.w   #'A',r5
 			add.w   r5,r5
-			mov.w   letters(r5),r5
+  			mov.w   letters(r5),r5
+            jmp     loop3
+
+number:     sub.w   #'0',r5
+			add.w   r5,r5
+            mov.w   numbers(r5),r5
 
 loop3:      mov.b   @r5+,r6
             cmp.b   #DOT,r6
@@ -99,7 +121,7 @@ loop3:      mov.b   @r5+,r6
             cmp.b   #DASH, r6
               jeq   loop5
             cmp.b   #END, r6
-              jeq   loop6
+              jeq   loop7
             jmp     loop
 
 loop4:      call    #doDot
@@ -109,7 +131,10 @@ loop5:      call    #doDash
             jmp     loop3
 
 loop6:      call    #doSpace
-			jmp     loop
+			jmp     loop2
+
+loop7:      call    #interSpace
+			jmp     loop2
 
 doDot:      push.w  r15
             mov.w   #ELEMENT,r15            ; output DOT
@@ -124,6 +149,12 @@ doDash:     push.w  r15
             call    #beep
             mov.w   #ELEMENT,r15            ; delay 1 element
             call    #delay
+            pop.w   r15
+            ret
+
+interSpace: push.w  r15
+            mov.w   #ELEMENT*3,r15          ; output space
+            call    #delay                  ; delay
             pop.w   r15
             ret
 
@@ -173,11 +204,17 @@ WDT_04:		tst.w   &delay_cnt              ; delay?
 
 WDT_10:     reti                            ; return from interrupt
 
+P1_ISR:     bic.b  #0x3f,&P1IFG          ; clear P1.0 Interrupt Flag
+            ORANGE_TOGGLE                    ; turn on orange LED
+            reti
+
 ; Interrupt Vectors -----------------------------------------------------------
             .sect   ".int10"                ; Watchdog Vector
             .word   WDT_ISR                 ; Watchdog ISR
 
+            .sect  ".int02"              ; P1 interrupt vector
+            .word  P1_ISR
+
             .sect   ".reset"                ; PUC Vector
             .word   RESET                   ; RESET ISR
             .end
-
