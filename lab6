@@ -197,7 +197,7 @@ WDT_ISR:    tst.w   debounce_cnt            ; debouncing?
             and.b   #0x0f,switches
             xor.b   #0x0f,switches            ; any switches?
               jeq   WDT_CONT
-;            xor.b   #0x20,&P4OUT			; beep using 50% PWM
+            xor.b   #1,&beep_bool			; toggle whether the machine should beep or not
 
 WDT_CONT:	tst.w   &beep_cnt               ; beep on?
               jeq   WDT_02                  ; n
