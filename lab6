@@ -62,6 +62,7 @@ DEBOUNCE    .equ    10
             .bss    second_cnt, 2
             .bss    debounce_cnt,2          ; debounce count
             .bss    switches, 2
+            .bss    beep_bool, 1
 
 ; Program section -------------------------------------------------------------
             .text                           ; program section
@@ -96,6 +97,7 @@ main_asm:   mov.w   #WDT_CTL,&WDTCTL        ; set WD timer interval
             clr.w   &delay_cnt
             bis.w   #GIE,SR                 ; enable interrupts
             mov.w   #WDT_IPS, &second_cnt
+            mov.w   #1, &beep_bool
 
 loop:       mov.w   #message, r4
 ;loop:      call    #doDot
@@ -195,11 +197,18 @@ WDT_ISR:    tst.w   debounce_cnt            ; debouncing?
             and.b   #0x0f,switches
             xor.b   #0x0f,switches            ; any switches?
               jeq   WDT_CONT
-            xor.b   #0x20,&P4OUT			; beep using 50% PWM
+;            xor.b   #0x20,&P4OUT			; beep using 50% PWM
+
 WDT_CONT:	tst.w   &beep_cnt               ; beep on?
               jeq   WDT_02                  ; n
             dec.w   &beep_cnt               ; y, decrement count
             RED_ON
+
+            cmp.b   #1, &beep_bool
+              jeq   WDT_BEEP
+            jmp     WDT_02
+
+WDT_BEEP:   xor.b   #0x20,&P4OUT			; beep using 50% PWM
 
 WDT_02:		RED_OFF
 			tst.w &second_cnt
