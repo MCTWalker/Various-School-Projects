@@ -50,6 +50,7 @@ END         .equ    0
 DOT         .equ    1
 DASH        .equ    2
 ELEMENT     .equ    ((WDT_IPS*240)/1000)    ; (WDT_IPS * 6 / WPM) / 5
+DEBOUNCE    .equ    10
 
 ; External references ---------------------------------------------------------
             .ref    numbers                 ; codes for 0-9
@@ -59,6 +60,8 @@ ELEMENT     .equ    ((WDT_IPS*240)/1000)    ; (WDT_IPS * 6 / WPM) / 5
             .bss    beep_cnt,2              ; beeper flag
             .bss    delay_cnt,2             ; delay flag
             .bss    second_cnt, 2
+            .bss    debounce_cnt,2          ; debounce count
+            .bss    switches, 2
 
 ; Program section -------------------------------------------------------------
             .text                           ; program section
@@ -183,11 +186,20 @@ delay02:    tst.w   &delay_cnt              ; delay done?
 
 
 ; Watchdog Timer ISR ----------------------------------------------------------
-WDT_ISR:    tst.w   &beep_cnt               ; beep on?
+WDT_ISR:    tst.w   debounce_cnt            ; debouncing?
+              jeq   WDT_CONT                ; n
+; debounce switches & process
+            dec.w   debounce_cnt          ; y, decrement count, done?
+              jne   WDT_CONT               ; n
+            mov.b   &P1IN,switches             ; read switches
+            and.b   #0x0f,switches
+            xor.b   #0x0f,switches            ; any switches?
+              jeq   WDT_CONT
+            xor.b   #0x20,&P4OUT			; beep using 50% PWM
+WDT_CONT:	tst.w   &beep_cnt               ; beep on?
               jeq   WDT_02                  ; n
             dec.w   &beep_cnt               ; y, decrement count
             RED_ON
-            xor.b   #0x20,&P4OUT            ; beep using 50% PWM
 
 WDT_02:		RED_OFF
 			tst.w &second_cnt
@@ -204,8 +216,9 @@ WDT_04:		tst.w   &delay_cnt              ; delay?
 
 WDT_10:     reti                            ; return from interrupt
 
-P1_ISR:     bic.b  #0x3f,&P1IFG          ; clear P1.0 Interrupt Flag
-            ORANGE_TOGGLE                    ; turn on orange LED
+P1_ISR:     bic.b  #0x01,&P1IFG             ; clear P1.0 Interrupt Flag
+            ORANGE_TOGGLE
+            mov.w  #DEBOUNCE,debounce_cnt  ; reset debounce count
             reti
 
 ; Interrupt Vectors -----------------------------------------------------------
