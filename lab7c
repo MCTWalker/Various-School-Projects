@@ -1,0 +1,128 @@
+#include <stdlib.h>
+#include <ctype.h>
+
+/*
+ * main.c
+ */
+extern int main_asm(void);
+extern char* letters[];
+extern char* numbers[];
+extern void doSpace();
+extern void doDot();
+extern void doDash();
+extern void interSpace();
+extern char* message;
+
+void outputChar(char*);
+
+int main(void)
+{
+
+									//    ; start main function vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+	WDTCTL = WDT_CTL;				//    main_asm:   mov.w   #WDT_CTL,&WDTCTL        ; set WD timer interval
+	IE1 = WDTIE;					//                mov.b   #WDTIE,&IE1             ; enable WDT interrupt
+	P4DIR = 0x20;					//                bis.b   #0x20,&P4DIR            ; set P4.5 as output (speaker)
+				                    //                clr.w   &beep_cnt               ; clear counters
+									//                clr.w   &delay_cnt
+									//                bis.w   #GIE,SR                 ; enable interrupts
+									//                mov.w   #WDT_IPS, &second_cnt
+									//                mov.w   #1, &beep_bool
+									//
+	while(1)						//    loop:       mov.w   #message, r4
+	{  	char c;
+		char* mptr = message;
+		while(c = *mptr++)		    //    loop2:      mov.b   @r4+,r5
+		{
+			    if (c == ' ') doSpace();				//    			cmp.b   #32, r5
+									//    			  jeq   loop6
+									//    			cmp.b   #58, r5
+									//    			  jl    number
+									//
+			    else if (isalpha(c)) interpretChar(letters[toupper(c) - 'A']);					//    letter:	    sub.w   #'A',r5
+									//    			add.w   r5,r5
+									//      			mov.w   letters(r5),r5
+									//                jmp     loop3
+									//
+									//    number:     sub.w   #'0',r5
+									//    			add.w   r5,r5
+				else if (isdigit(c)) interpretChar(numbers[c - '0']);					//                mov.w   numbers(r5),r5
+									//
+		}
+	}
+	return 0;
+}
+void outputChar(char* charPtr)
+{   char* dotOrDashPtr = charPtr[0];
+	char dotOrDashChar;
+	while (dotOrDashChar = *dotOrDashPtr++)					//    loop3:      mov.b   @r5+,r6
+	{
+		if (dotOrDashChar == DOT)    //                cmp.b   #DOT,r6
+		{doDot();}				    //                  jeq   loop4
+		else if (dotOrDashChar == DASH)//             cmp.b   #DASH, r6
+		{doDash();}				    //                  jeq   loop5
+		else if (dotOrDashChar == END)//              cmp.b   #END, r6
+		{ interSpace();
+		  break;
+		}
+
+	}								//                  jeq   loop7
+}									//                jmp     loop
+//    ; end main function ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+									//
+									//    loop4:      call    #doDot
+									//                jmp     loop3
+									//
+									//    loop5:      call    #doDash
+									//                jmp     loop3
+									//
+									//    loop6:      call    #doSpace
+									//    			jmp     loop2
+									//
+									//    loop7:      call    #interSpace
+									//    			jmp     loop2
+									//
+									//    doDot:      push.w  r15
+									//                mov.w   #ELEMENT,r15            ; output DOT
+									//                call    #beep
+									//                mov.w   #ELEMENT,r15            ; delay 1 element
+									//                call    #delay
+									//                pop.w   r15
+									//                ret
+									//
+									//    doDash:     push.w  r15
+									//                mov.w   #ELEMENT*3,r15          ; output DASH
+									//                call    #beep
+									//                mov.w   #ELEMENT,r15            ; delay 1 element
+									//                call    #delay
+									//                pop.w   r15
+									//                ret
+									//
+									//    interSpace: push.w  r15
+									//                mov.w   #ELEMENT*2,r15          ; output space
+									//                call    #delay                  ; delay
+									//                pop.w   r15
+									//                ret
+									//
+									//    doSpace:    push.w  r15
+									//                mov.w   #ELEMENT*4,r15          ; output space
+									//                call    #delay                  ; delay
+									//                pop.w   r15
+									//                ret
+									//
+									//
+									//    ; beep (r15) ticks subroutine -------------------------------------------------
+									//    beep:       mov.w   r15,&beep_cnt           ; start beep
+									//
+									//    beep02:     tst.w   &beep_cnt               ; beep finished?
+									//                  jne   beep02                  ; n
+									//                ret                             ; y
+									//
+									//
+									//    ; delay (r15) ticks subroutine ------------------------------------------------
+									//    delay:      mov.w   r15,&delay_cnt          ; start delay
+									//
+									//    delay02:    tst.w   &delay_cnt              ; delay done?
+									//                  jne   delay02                 ; n
+									//                ret                             ; y
+
+
