@@ -4,6 +4,11 @@
 			.def     doDot
 			.def     doDash
 			.def     interSpace
+			.def     initialize
+			.def     beep_cnt
+			.def     delay_cnt;
+			.def     second_cnt;
+			.def     beep_bool;
 
 ;*******************************************************************************
 ;     Project:  morse.asm (02/15/2017)
@@ -62,12 +67,13 @@
 
 ; Program section -------------------------------------------------------------
             .text                           ; program section
+message:    .string "HELLO CS 224 WORLD "
             .byte   0
             .align  2                       ; align on word boundary
 
 ; power-up reset --------------------------------------------------------------
 ;RESET:      ;mov.w   #STACK,SP               ; initialize stack pointer
-			GREEN_OFF
+initialize:	GREEN_OFF
 			RED_OFF
 			bic.b   #0x01,&P1SEL           ; select GPIO
             bic.b   #0x01,&P1DIR           ; configure P1.0 as inputs
@@ -79,18 +85,18 @@
 
             bis.w   #GIE,SR                  ; enable general interrupts
 
-			bis.b   #0x4f,&P4DIR            ; set P4.0-3,6 as output
+			bis.b   #0x20,&P4DIR			; set P4.5 as output (speaker)
+			bis.b   #0x40,&P4DIR            ; set P4.0-3,6 as output
 			bis.b   #0x10,&P3DIR            ; set P3.4 as output
+			ret
             ;call    #main_asm               ; call main function
             ;jmp     $                       ; you should never get here!
 
 ; start main function vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv	
 main_asm:   mov.w   #WDT_CTL,&WDTCTL        ; set WD timer interval
             mov.b   #WDTIE,&IE1             ; enable WDT interrupt
-            bis.b   #0x20,&P4DIR            ; set P4.5 as output (speaker)
             clr.w   &beep_cnt               ; clear counters
             clr.w   &delay_cnt
-            bis.w   #GIE,SR                 ; enable interrupts
             mov.w   #WDT_IPS, &second_cnt
             mov.w   #1, &beep_bool
 
