@@ -16,6 +16,7 @@ extern int beep_cnt;
 extern int delay_cnt;
 extern int second_cnt;
 extern int beep_bool;
+extern int debounce_cnt;
 
 void outputChar(char*);
 
@@ -66,4 +67,11 @@ void outputChar(char* charPtr)
 	interSpace();					//                  jeq   loop7
 }									//                jmp     loop
 //    ; end main function ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-									//
+
+#pragma vector=PORT1_VECTOR
+__interrupt void Port_1_ISR(void)
+{
+   P1IFG &= ~0x0f;        //   P1_ISR:     bic.b  #0x01,&P1IFG             ; clear P1.0 Interrupt Flag
+   debounce_cnt = DEBOUNCE;   //   mov.w  #DEBOUNCE,debounce_cnt  ; reset debounce count
+   return;                //   reti
+}					//
