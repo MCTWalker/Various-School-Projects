@@ -9,6 +9,7 @@
 			.def     delay_cnt;
 			.def     second_cnt;
 			.def     beep_bool;
+			.def     debounce_cnt;
 
 ;*******************************************************************************
 ;     Project:  morse.asm (02/15/2017)
@@ -129,6 +130,7 @@ loop3:      mov.b   @r5+,r6
             cmp.b   #END, r6
               jeq   loop7
             jmp     loop
+; end main function ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 loop4:      call    #doDot
             jmp     loop3
@@ -169,7 +171,6 @@ doSpace:    push.w  r15
             call    #delay                  ; delay
             pop.w   r15
             ret
-; end main function ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 ; beep (r15) ticks subroutine -------------------------------------------------
@@ -226,17 +227,16 @@ WDT_04:		tst.w   &delay_cnt              ; delay?
 
 WDT_10:     reti                            ; return from interrupt
 
-P1_ISR:     bic.b  #0x01,&P1IFG             ; clear P1.0 Interrupt Flag
-            ORANGE_TOGGLE
-            mov.w  #DEBOUNCE,debounce_cnt  ; reset debounce count
-            reti
+;P1_ISR:     bic.b  #0x01,&P1IFG             ; clear P1.0 Interrupt Flag
+;            mov.w  #DEBOUNCE,debounce_cnt  ; reset debounce count
+;            reti
 
 ; Interrupt Vectors -----------------------------------------------------------
             .sect   ".int10"                ; Watchdog Vector
             .word   WDT_ISR                 ; Watchdog ISR
 
-            .sect  ".int02"              ; P1 interrupt vector
-            .word  P1_ISR
+            ;.sect  ".int02"              ; P1 interrupt vector
+            ;.word  P1_ISR
 
             ;.sect   ".reset"                ; PUC Vector
             ;.word   RESET                   ; RESET ISR
