@@ -69,9 +69,10 @@ void LCD_UPDATE_event(void);
 
 #define MAX_SNAKE			128			// max snake length (make power of 2)
 #define MAX_FOOD			10			// max # of foods
+#define MAX_ROCK			6			// max # of rocks
 
 #define TIME_1_LIMIT		30
-#define LEVEL_1_FOOD		5			// 10
+#define LEVEL_1_FOOD		7			// 10
 
 #define TIME_2_LIMIT		30
 #define LEVEL_2_FOOD		MAX_FOOD
@@ -81,6 +82,11 @@ void LCD_UPDATE_event(void);
 
 #define TIME_4_LIMIT		60
 #define LEVEL_4_FOOD		MAX_FOOD
+
+#define LEVEL_1_MAX_SCORE   LEVEL_1_FOOD
+#define LEVEL_2_MAX_SCORE   LEVEL_1_FOOD + LEVEL_2_FOOD
+#define LEVEL_3_MAX_SCORE   LEVEL_1_FOOD + LEVEL_2_FOOD + LEVEL_3_FOOD
+#define LEVEL_4_MAX_SCORE   LEVEL_1_FOOD + LEVEL_2_FOOD + LEVEL_3_FOOD + LEVEL_4_FOOD
 
 enum DIRECTION {RIGHT, UP, LEFT, DOWN};		// movement constants
 enum MODE {IDLE, SETUP, PLAY, NEXT, EOG};	// player modes
@@ -101,7 +107,14 @@ typedef struct
 {
    int row;
    int col;
+   int eaten;
 } FOOD;
+
+typedef struct
+{
+   int row;
+   int col;
+} ROCK;
 
 
 #define COL(x)	((x)*6+7+3)				// grid x value to LCD column
