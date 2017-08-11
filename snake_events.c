@@ -60,9 +60,7 @@ int isOnSnake(int col, int row){
 	int i;
 	int realI;
 	for (i = tail; i < tail + snake_length; i++){
-		realI = i;
-		if (i >= MAX_SNAKE)
-			realI = i % MAX_SNAKE;
+		realI = i % MAX_SNAKE;
 		if (snake[realI].point.x == col && snake[realI].point.y == row){
 			return i + 1;
 		}
@@ -74,9 +72,7 @@ int isOnSnakeNotHead(int col, int row){
 	int i;
 	int realI;
 	for (i = tail; i < tail + snake_length; i++){
-		realI = i;
-		if (i >= MAX_SNAKE)
-			realI = i % MAX_SNAKE;
+		realI = i % MAX_SNAKE;
 		if (snake[realI].point.x == col && snake[realI].point.y == row){
 			return i + 1;
 		}
@@ -88,15 +84,19 @@ void drawSnake(void){
 	int i;
 	int realI;
 	for (i = tail; i < tail + snake_length; i++){
-		realI = i;
-		if (i >= MAX_SNAKE)
-			realI = i % MAX_SNAKE;
+		realI = i % MAX_SNAKE;
 
 		lcd_point(COL(snake[realI].point.x), ROW(snake[realI].point.y), PENTX);
 	}
 }
 
 int isOnRock(int col, int row) {
+	int i;
+	for (i = 0; i < rock_num; i++){
+		if (rock_array[i]->col == col && rock_array[i]->row == row){
+			return i + 1;
+		}
+	}
 	return 0;
 }
 
@@ -110,7 +110,7 @@ void setRandFoodPoint(FOOD* fud){
 		y = 1 + (rand() % 22);//not putting food against walls
 		x = 1 + (rand() % 23);
 
-		if (!isOnFood(x, y) && !isOnSnake(x, y))// && !isOnRock(x, y)
+		if (!isOnFood(x, y) && !isOnSnake(x, y) && !isOnRock(x, y))
 		{
 			invalidPoint = 0;
 		}
@@ -150,7 +150,7 @@ void MOVE_SNAKE_event(void)
 		//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 		//	Add code here to check for collisions...
 		//if (snakeIndex = isOnSnakeNotHead(snake[head].point.x, snake[head].point.y)){
-		if (snakeIndex = isOnSnakeNotHead(snake[head].point.x, snake[head].point.y)) {//|| isOnRock(snake[head].point.x, snake[head].point.y)
+		if ((snakeIndex = isOnSnakeNotHead(snake[head].point.x, snake[head].point.y)) || isOnRock(snake[head].point.x, snake[head].point.y)) {
 			//snake has collided with self
 			END_GAME_event();
 		}
@@ -207,6 +207,7 @@ void NEW_GAME_event(void)
 	score = 0;
 	move_cnt = WDT_MOVE1;
 	level = 0;
+	rock_num = 0;
 	snake_length = 2;
 	//lcd_wordImage(snake1_image, (159-60)/2, 60, 1);
 	//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
@@ -249,17 +250,6 @@ void START_LEVEL_event(void)
 	//	Add code here to setup playing board for next level
 	//	Draw snake, foods, reset timer, set level, move_cnt etc
 	//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-//#define TIME_1_LIMIT		30
-//#define LEVEL_1_FOOD		5			// 10
-//
-//#define TIME_2_LIMIT		30
-//#define LEVEL_2_FOOD		MAX_FOOD
-//
-//#define TIME_3_LIMIT		30
-//#define LEVEL_3_FOOD		MAX_FOOD
-//
-//#define TIME_4_LIMIT		60
-//#define LEVEL_4_FOOD		MAX_FOOD
 	game_mode = PLAY;						// start level
 	lcd_clear();							// clear lcd
 	lcd_rectangle(2, 4, 154, 149, 15);
@@ -294,8 +284,8 @@ void START_LEVEL_event(void)
 			break;
 	}
 
-	/*rock_num = 1 + (rand() % MAX_ROCK);
 	if (level != 1){
+		rock_num = 1 + (rand() % MAX_ROCK);
 		int i;
 		for (i = 0; i < rock_num; i++)
 		{
@@ -303,9 +293,9 @@ void START_LEVEL_event(void)
 			f = (ROCK*)malloc(sizeof(ROCK));
 			setRandRockPoint(f);
 			rock_array[i] = f;
-			lcd_square(COL(f->col), ROW(f->row), 3, 5);
+			lcd_square(COL(f->col), ROW(f->row), 1, 7);
 		}
-	}*/
+	}
 
 	int i;
 	for (i = 0; i < food_num; i++)
@@ -321,6 +311,7 @@ void START_LEVEL_event(void)
 		food_array[i] = f;
 	}
 	seconds = 0;							// restart timer
+	drawSnake();
 	return;
 } // end START_LEVEL_event
 
@@ -525,4 +516,3 @@ void LCD_UPDATE_event(void)
 	lcd_printf("Time %d", seconds);
 	//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 } // end LCD_UPDATE_event
-
