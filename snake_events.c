@@ -37,7 +37,9 @@ extern const uint16 snake_text_image[];		// snake text image
 extern const uint16 snake1_image[];			// snake image
 
 FOOD* food_array[MAX_FOOD];
+ROCK* rock_array[MAX_ROCK];
 int food_num;
+int rock_num;
 int snake_length = 2;
 
 
@@ -47,7 +49,7 @@ int snake_length = 2;
 int isOnFood(int col, int row){
 	int i;
 	for (i = 0; i < food_num; i++){
-		if (food_array[i]->col == col && food_array[i]->row == row){
+		if (food_array[i]->col == col && food_array[i]->row == row  && food_array[i]->eaten == 0){
 			return i + 1;
 		}
 	}
@@ -56,27 +58,79 @@ int isOnFood(int col, int row){
 
 int isOnSnake(int col, int row){
 	int i;
-	for (i = 0; i < snake_length; i++){
-		if (snake[i].point.x == col && snake[i].point.y == row){
+	int realI;
+	for (i = tail; i < tail + snake_length; i++){
+		realI = i;
+		if (i >= MAX_SNAKE)
+			realI = i % MAX_SNAKE;
+		if (snake[realI].point.x == col && snake[realI].point.y == row){
 			return i + 1;
 		}
 	}
 	return 0;
 }
 
+int isOnSnakeNotHead(int col, int row){
+	int i;
+	int realI;
+	for (i = tail; i < tail + snake_length; i++){
+		realI = i;
+		if (i >= MAX_SNAKE)
+			realI = i % MAX_SNAKE;
+		if (snake[realI].point.x == col && snake[realI].point.y == row){
+			return i + 1;
+		}
+	}
+	return 0;
+}
+
+void drawSnake(void){
+	int i;
+	int realI;
+	for (i = tail; i < tail + snake_length; i++){
+		realI = i;
+		if (i >= MAX_SNAKE)
+			realI = i % MAX_SNAKE;
+
+		lcd_point(COL(snake[realI].point.x), ROW(snake[realI].point.y), PENTX);
+	}
+}
+
+int isOnRock(int col, int row) {
+	return 0;
+}
+
 void setRandFoodPoint(FOOD* fud){
 	int invalidPoint = 1;
-	int onSnake = 0;
-	int onFood = 0;
 	int x;
 	int y;
 
 	while (invalidPoint)
 	{
-		y = (rand() % 23);
-		x = (rand() % 24);
+		y = 1 + (rand() % 22);//not putting food against walls
+		x = 1 + (rand() % 23);
 
-		if (!isOnFood(x, y) && !isOnSnake(x, y))
+		if (!isOnFood(x, y) && !isOnSnake(x, y))// && !isOnRock(x, y)
+		{
+			invalidPoint = 0;
+		}
+	}
+	fud->col = x;
+	fud->row = y;
+	fud->eaten = 0;
+}
+
+void setRandRockPoint(ROCK* fud){
+	int invalidPoint = 1;
+	int x;
+	int y;
+
+	while (invalidPoint)
+	{
+		y = 1 + (rand() % 22);// not putting rocks against walls
+		x = 1 + (rand() % 23);
+
+		if (!isOnFood(x, y) && !isOnSnake(x, y) && !isOnRock(x, y))
 		{
 			invalidPoint = 0;
 		}
@@ -92,24 +146,49 @@ void MOVE_SNAKE_event(void)
 		add_head(&head, &direction);		// add head
 		lcd_point(COL(snake[head].point.x), ROW(snake[head].point.y), PENTX);
 		int foodIndex;
+		int snakeIndex;
 		//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 		//	Add code here to check for collisions...
-		if (foodIndex = isOnFood(snake[head].point.x, snake[head].point.y)) {
+		//if (snakeIndex = isOnSnakeNotHead(snake[head].point.x, snake[head].point.y)){
+		if (snakeIndex = isOnSnakeNotHead(snake[head].point.x, snake[head].point.y)) {//|| isOnRock(snake[head].point.x, snake[head].point.y)
+			//snake has collided with self
+			END_GAME_event();
+		}
+		else if (foodIndex = isOnFood(snake[head].point.x, snake[head].point.y)) {
 			foodIndex--;
 			snake_length++;
+			food_array[foodIndex]->eaten = 1;
 			if (level == 1) {
 				setRandFoodPoint(food_array[foodIndex]);
 				lcd_diamond(COL(food_array[foodIndex]->col), ROW(food_array[foodIndex]->row), 2, 1);
 			}
 			score++;
-			beep();
-			blink();
+			if (score == LEVEL_1_MAX_SCORE && level == 1)
+			{
+				NEXT_LEVEL_event();
+			}
+			else if (score == LEVEL_2_MAX_SCORE && level == 2)
+			{
+				NEXT_LEVEL_event();
+			}
+			else if (score == LEVEL_3_MAX_SCORE && level == 3)
+			{
+				NEXT_LEVEL_event();
+			}
+			else if (score == LEVEL_4_MAX_SCORE && level == 4)
+			{
+				NEXT_LEVEL_event();
+			}
+			else
+			{
+				beep();
+				blink();
+			}
 		} else {
 			// delete tail on lcd				// delete tail
 			lcd_point(COL(snake[tail].point.x), ROW(snake[tail].point.y), PENTX_OFF);
 			tail = (tail + 1) & (~MAX_SNAKE);
 		}
-		lcd_square(COL(12), ROW(0), 2, 1 + FILL);
 		//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 	}
 	return;
@@ -125,26 +204,13 @@ void NEW_GAME_event(void)
 	lcd_clear();							// clear lcd
 	lcd_backlight(1);						// turn on backlight
 
-	switch (game_mode)
-	{
-	case IDLE:
-		score = 0;
-		move_cnt = WDT_MOVE2;
-		level = 0;
-		snake_length = 2;
-		lcd_rectangle(2, 4, 154, 149, 15);
-		lcd_rectangle(0, 0, 159, 159, 15);
-		lcd_cursor(5, 0);
-		lcd_printf(" UP");
-		lcd_cursor(40, 0);
-		lcd_printf(" DOWN");
-		lcd_cursor(90, 0);
-		lcd_printf(" LEFT");
-		lcd_cursor(125, 0);
-		lcd_printf(" RIGHT");
-		//lcd_wordImage(snake1_image, (159-60)/2, 60, 1);
-		//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-		// ***demo only***
+	score = 0;
+	move_cnt = WDT_MOVE1;
+	level = 0;
+	snake_length = 2;
+	//lcd_wordImage(snake1_image, (159-60)/2, 60, 1);
+	//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+	// ***demo only***
 //		lcd_wordImage(snake1_image, (159-60)/2, 60, 1);
 //		lcd_wordImage(snake_text_image, (159-111)/2, 20, 1);
 //		lcd_diamond(COL(16), ROW(20), 2, 1);
@@ -155,13 +221,9 @@ void NEW_GAME_event(void)
 //		score = 10;
 //		move_cnt = WDT_MOVE2;				// level 2, speed 2
 //		level = 2;
-		// ***demo only***
-		//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+	// ***demo only***
+	//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-
-	default:
-		break;
-	}
 	head = 0;
 	tail = 0;
 	snake[head].point.x = 0;
@@ -199,32 +261,62 @@ void START_LEVEL_event(void)
 //#define TIME_4_LIMIT		60
 //#define LEVEL_4_FOOD		MAX_FOOD
 	game_mode = PLAY;						// start level
+	lcd_clear();							// clear lcd
+	lcd_rectangle(2, 4, 154, 149, 15);
+	lcd_rectangle(0, 0, 159, 159, 15);
+	lcd_cursor(5, 0);
+	lcd_printf(" UP");
+	lcd_cursor(40, 0);
+	lcd_printf(" DOWN");
+	lcd_cursor(90, 0);
+	lcd_printf(" LEFT");
+	lcd_cursor(125, 0);
+	lcd_printf(" RIGHT");
 	level++;
 
 	switch (level)
 	{
 	    case 1:
 	    	food_num = LEVEL_1_FOOD;
+	    	move_cnt = WDT_MOVE1;
 	    	break;
 		case 2:
 			food_num = LEVEL_2_FOOD;
+			move_cnt = WDT_MOVE2;
 			break;
 		case 3:
 			food_num = LEVEL_3_FOOD;
+			move_cnt = WDT_MOVE3;
 			break;
 		case 4:
 			food_num = LEVEL_4_FOOD;
+			move_cnt = WDT_MOVE4;
 			break;
 	}
+
+	/*rock_num = 1 + (rand() % MAX_ROCK);
+	if (level != 1){
+		int i;
+		for (i = 0; i < rock_num; i++)
+		{
+			ROCK* f;
+			f = (ROCK*)malloc(sizeof(ROCK));
+			setRandRockPoint(f);
+			rock_array[i] = f;
+			lcd_square(COL(f->col), ROW(f->row), 3, 5);
+		}
+	}*/
 
 	int i;
 	for (i = 0; i < food_num; i++)
 	{
 		FOOD* f;
 		f = (FOOD*)malloc(sizeof(FOOD));
-		f->row = 1 + (rand() % 23);
-		f->col = 1 + (rand() % 24);
-		if (level == 1)
+		setRandFoodPoint(f);
+		f->eaten = 0;
+		if (level == 1 || level == 2)
+			lcd_diamond(COL(f->col), ROW(f->row), 2, 1);
+		else if ((level == 3 || level == 4) && i == 0)
 			lcd_diamond(COL(f->col), ROW(f->row), 2, 1);
 		food_array[i] = f;
 	}
@@ -232,15 +324,18 @@ void START_LEVEL_event(void)
 	return;
 } // end START_LEVEL_event
 
+void freeRocks(void){
+	int i;
+	for (i = 0; i < rock_num; i++)
+	{
+		if (rock_array[i] != NULL){
+			free(rock_array[i]);
+		}
+		rock_array[i] = NULL;
+	}
+}
 
-//------------------------------------------------------------------------------
-//-- next level event -----------------------------------------------------------
-//
-void NEXT_LEVEL_event(void)
-{
-	//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-	//	Add code here to handle NEXT_LEVEL event
-	//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+void freeFood(void){
 	int i;
 	for (i = 0; i < food_num; i++)
 	{
@@ -249,10 +344,22 @@ void NEXT_LEVEL_event(void)
 		}
 		food_array[i] = NULL;
 	}
+}
+//------------------------------------------------------------------------------
+//-- next level event -----------------------------------------------------------
+//
+void NEXT_LEVEL_event(void)
+{
+	//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+	//	Add code here to handle NEXT_LEVEL event
+	//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+	//freeRocks();
+	freeFood();
 
 	if (level == 4){
 		END_GAME_event();
 	} else {
+		charge();
 		START_LEVEL_event();
 	}
 } // end NEXT_LEVEL_event
@@ -266,6 +373,23 @@ void END_GAME_event(void)
 	//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 	//	Add code here to handle END_GAME event
 	//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+	int i;
+	game_mode = IDLE;
+	for (i = 0; i < food_num; i++)
+	{
+		if (food_array[i] != NULL){
+			free(food_array[i]);
+		}
+		food_array[i] = NULL;
+	}
+	for (i = 0; i < rock_num; i++)
+	{
+		if (rock_array[i] != NULL){
+			free(rock_array[i]);
+		}
+		rock_array[i] = NULL;
+	}
+	sys_event = END_GAME;
 } // end END_GAME_event
 
 
@@ -399,8 +523,6 @@ void LCD_UPDATE_event(void)
 	lcd_printf("Level %d", level);
 	lcd_cursor(105, 150);
 	lcd_printf("Time %d", seconds);
-	lcd_cursor((score < 100) ? 75 : 66, 65);
-	lcd_printf("\b\t%d", seconds);
 	//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 } // end LCD_UPDATE_event
 
