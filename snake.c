@@ -1,3 +1,31 @@
+//******************************************************************************
+//	Lab 09b - snake.c  (08/07/2015)
+//
+//       Author:  Maura Walker, Brigham Young University
+//  Description:  "Write a snake game program in C that scores points by eating
+//                randomly placed food on the display. There are four levels of
+//                play, each with increasing difficulty. The game ends when the
+//                snake runs into an obstacle, itself, or time expires.  The
+//                direction of the snake’s head is turned to horizontal and
+//                vertical paths using the push buttons and the body of the snake
+//                follows in the head's path. The snake is always moving and the
+//	              snake moves faster at each level. The tail grows by one segment
+//                every time the snake eats a food."
+//    Revisions:  1.0		11/25/2012		RBX430-1
+//                1.1		04/12/2013		START_LEVEL
+//                1.2		04/06/2015		functions moved to snakelib
+//                1.3		08/07/2015		else if (sys_event)
+//   Disclaimer:  This code is the work of Maura Walker.  I certify this to be my
+//                source code and not obtained from any student, past or current.
+//
+//  Built with Code Composer Studio Version: 5.2.0.00090
+//******************************************************************************
+//******************************************************************************
+//
+#include "msp430.h"
+#include <stdlib.h>
+#include "RBX430-1.h"
+#include "RBX430_lcd.h"
 #include "snake.h"
 #include "snakelib.h"
 
@@ -16,6 +44,7 @@ void main(void)
 	ERROR2(_SYS, watchdog_init(WDT_CTL));	// init watchdog timer
 	game_mode = IDLE;						// idle mode
 	sys_event = NEW_GAME;					// new game (in idle mode)
+	srand(ADC_read(MSP430_TEMPERATURE) + ADC_read(RED_LED)); //get random seed
 
 	//--------------------------------------------------------------------------
 	//	event service routine loop
@@ -73,6 +102,11 @@ void main(void)
 		else if (sys_event & NEW_GAME)		// new game event
 		{
 			sys_event &= ~NEW_GAME;			// clear new game event
+			NEW_GAME_event();				// new game
+		}
+		else if (sys_event & END_GAME)		// end game event
+		{
+			sys_event &= ~END_GAME;			// clear end game event
 			NEW_GAME_event();				// new game
 		}
 		else if (sys_event)					// ????
