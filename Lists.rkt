@@ -57,7 +57,21 @@
 (define (convertFC temps)
   (reverse-list (tempsConvert temps '()) '()))
 
-#(define (eliminate-larger lst) ...)
+(define (keepIfValid newNum lst)
+  (if (empty? lst)
+      (cons newNum lst)
+      (if (or (> (first lst) newNum) (= (first lst) newNum))
+          (cons newNum lst)
+          lst)))
+ 
+(define (getRidOfLarge lst newLst)
+  (if (empty? lst)
+      newLst
+      (getRidOfLarge (rest lst) (keepIfValid (first lst) newLst))))
+  
+
+(define (eliminate-larger lst)
+  (getRidOfLarge (reverse-list lst '()) '()))
       
  
 (check-temps1 (list 95 6 7))
@@ -70,3 +84,4 @@
 (cons 41 (cons 42 empty))
 (average (list 1 2 3 4))
 (convertFC (list 68 32 51 212))
+(eliminate-larger (list 5 4 3 2 1))
