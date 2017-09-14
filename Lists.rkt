@@ -42,7 +42,8 @@
 (define (count lst)
   (if (empty? lst)
       0
-      (+ 1 (count (rest lst)))))       
+      (+ 1 (count (rest lst)))))
+
 (define (average lst)
   (/ (sum lst) (count lst)))
 
@@ -72,16 +73,21 @@
 
 (define (eliminate-larger lst)
   (getRidOfLarge (reverse-list lst '()) '()))
-      
- 
-(check-temps1 (list 95 6 7))
-(check-temps (list 20 100) 20 100)
-(check-range 20 20 100)
-(reverse-list (list 6 3 4 7) '())
-(convert (list 2 3))
-(duple '(100 299 300))
-(define empty '())
-(cons 41 (cons 42 empty))
-(average (list 1 2 3 4))
-(convertFC (list 68 32 51 212))
-(eliminate-larger (list 5 4 3 2 1))
+
+(define (get-nth-helper lst n index)
+  (if (= n index)
+      (first lst)
+      (get-nth-helper (rest lst) n (+ index 1))))
+
+(define (get-nth lst n)
+  (get-nth-helper lst n 0))
+
+(define (find-item-helper lst target index)
+  (if (empty? lst)
+      -1
+      (if (= target (first lst))
+          index
+          (find-item-helper (rest lst) target (+ index 1)))))
+
+(define (find-item lst target)
+  (find-item-helper lst target 0))
