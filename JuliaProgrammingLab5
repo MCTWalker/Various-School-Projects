@@ -1,0 +1,68 @@
+abstract Shape
+
+type Position
+  x::Real
+  y::Real
+end
+
+type Circ <: Shape
+  center::Position
+  radius::Real
+end
+
+type Square <: Shape
+  upper_left::Position
+  length::Real
+end
+
+type Rect <: Shape
+  upper_left::Position
+  width::Real
+  height::Real
+end
+
+type Pixel
+  r::Real
+  g::Real
+  b::Real
+end
+
+function area(shape::Rect)
+  return shape.width * shape.height
+end
+
+function area(shape::Square)
+  return shape.length * shape.length
+end
+
+function area(shape::Circ)
+  return shape.radius ^ 2 * pi
+end
+
+function in_shape(shape::Circ, position::Position)
+  if (position.x - shape.center.x)^2 + (position.y - shape.center.y)^2 <= shape.radius^2
+      return true;
+  else
+      return false;
+  end
+end
+
+function in_rectangle(upper_left::Position, height::Real, width::Real, position::Position)
+  if(position.x <= upper_left.x + width && position.x >= upper_left.x && position.y <= upper_left.y && position.y >= upper_left.y - height)
+    return true
+  else
+    return false
+  end
+end
+
+function in_shape(shape::Rect, position::Position)
+  return in_rectangle(shape.upper_left, shape.height, shape.width, position)
+end
+
+function in_shape(shape::Square, position::Position)
+  return in_rectangle(shape.upper_left, shape.length, shape.length, position)
+end
+
+x = Square(Position(-2,0), 8)
+println(area(x))
+println(in_shape(x, Position(-3,-2)))
