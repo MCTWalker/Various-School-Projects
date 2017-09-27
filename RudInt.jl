@@ -1,3 +1,4 @@
+
 module RudInt
 
 push!(LOAD_PATH, ".")
@@ -5,8 +6,6 @@ push!(LOAD_PATH, ".")
 using Error
 using Lexer
 export interp
-
-opDict = Dict(:+ => +, :- => -, :mod => mod, :* => *, :/ => /)
 
 abstract type OWL end
 
@@ -40,15 +39,17 @@ function collatz_helper( n::Real, num_iters::Int )
   end
 end
 
+opDict = Dict(:+ => +, :- => -, :mod => mod, :* => *, :/ => /, :collatz => collatz)
+
 function parse( expr::Number )
     return Num( expr )
 end
 
 function parse( expr::Array{Any} )
-    if expr[1] == :+ || expr[1] == :- || expr[1] == :/ || expr[1] == :* || expr[1] == :mod || expr[1] == :collatz
+    if expr[1] == :+ || expr[1] == :/ || expr[1] == :* || expr[1] == :mod || (expr[1] == :- && length(expr) == 3)
         return Binop(opDict[expr[1]], parse( expr[2] ), parse( expr[3] ) )
-    elseif expr[1] == :-
-        return MinusNode(expr[1], parse( expr[2] ), parse( expr[3] ) )
+    elseif (expr[1] == :- || expr[1] == :collatz) && length(expr) == 2 
+        return Unop(opDict[expr[1]], parse( expr[2] ))
     end
     error("Unknown operator!")
 end
@@ -64,10 +65,16 @@ function calc( ast::Num )
 end
 
 function calc( ast::Binop )
+    if (ast.op == :/ && calc( ast.rhs ) == 0)
+        error("Division by zero")
+    end
     return ast.op(calc( ast.lhs ), calc( ast.rhs ))
 end
 
 function calc( ast::Unop )
+    if (ast.op == collatz && calc( ast.rhs ) <= 0 )
+        error("collatz of a negative number or zero was attempted")
+    end
     return ast.op(calc( ast.rhs ))
 end
 
