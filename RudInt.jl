@@ -6,11 +6,11 @@ using Error
 using Lexer
 export interp
 
-opDict = Dict(:+ => +, :- => -)
+opDict = Dict(:+ => +, :- => -, :mod => mod, :* => *, :/ => /)
 
 abstract type OWL end
 
-type NumNode <: OWL
+type Num <: OWL
 	n::Real
 end
 
@@ -23,16 +23,6 @@ end
 type Unop <: OWL
 	op::Function
 	rhs::OWL
-end
-
-type PlusNode <: OWL
-    lhs::OWL
-    rhs::OWL
-end
-
-type MinusNode <: OWL
-    lhs::OWL
-    rhs::OWL
 end
 
 function collatz( n::Real )
@@ -51,14 +41,14 @@ function collatz_helper( n::Real, num_iters::Int )
 end
 
 function parse( expr::Number )
-    return NumNode( expr )
+    return Num( expr )
 end
 
 function parse( expr::Array{Any} )
-    if expr[1] == :+
-        return PlusNode( parse( expr[2] ), parse( expr[3] ) )
+    if expr[1] == :+ || expr[1] == :- || expr[1] == :/ || expr[1] == :* || expr[1] == :mod || expr[1] == :collatz
+        return Binop(opDict[expr[1]], parse( expr[2] ), parse( expr[3] ) )
     elseif expr[1] == :-
-        return MinusNode( parse( expr[2] ), parse( expr[3] ) )
+        return MinusNode(expr[1], parse( expr[2] ), parse( expr[3] ) )
     end
     error("Unknown operator!")
 end
@@ -69,17 +59,16 @@ function interp( cs::AbstractString )
     return calc( ast )
 end
 
-function calc( ast::NumNode )
+function calc( ast::Num )
     return ast.n
 end
 
-function calc( ast::PlusNode )
-    return calc( ast.lhs ) + calc( ast.rhs )
+function calc( ast::Binop )
+    return ast.op(calc( ast.lhs ), calc( ast.rhs ))
 end
 
-function calc( ast::MinusNode )
-    return calc( ast.lhs ) - calc( ast.rhs )
+function calc( ast::Unop )
+    return ast.op(calc( ast.rhs ))
 end
-
 
 end #module
