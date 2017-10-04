@@ -230,11 +230,11 @@ function calc( ast::SymbolNode, env::CEnvironment )
 end
 
 function calc( ast::If0Node, env::Environment )
-    cond = calc( ast.cond, env )
-    if cond.n == 0
-        return calc( ast.zerobranch, env )
+    cond = calc( ast.condition, env )
+    if cond == 0
+        return calc( ast.zero_branch, env )
     else
-        return calc( ast.nzerobranch, env )
+        return calc( ast.nonzero_branch, env )
     end
 end
 
