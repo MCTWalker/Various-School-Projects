@@ -36,9 +36,13 @@ type If0Node <: OWL
   nonzero_branch::OWL
 end
 
+type BindingEnv <:OWL
+  names::Array{Symbol}
+  binding_exprs::Array{OWL}
+end
+
 type WithNode <: OWL
-  name::Symbol
-  binding_expr::OWL
+  binding_env::BindingEnv
   body::OWL
 end
 
@@ -72,8 +76,8 @@ type mtEnv <: Environment
 end
 
 type CEnvironment <: Environment
-  name::Symbol
-  value::RetVal
+  names::Array{Symbol}
+  values::Array{RetVal}
   parent::Environment
 end
 
@@ -115,6 +119,23 @@ function parse( expr::Symbol )
     return SymbolNode( expr )
 end
 
+function addToBindingArray(expr::Array{Any}, env::BindingEnv)
+  if (length(expr) < 2)
+    throw( LispError("Invalid arity for with node binding expression"))
+  end
+
+  if (typeof(expr[1]) == Symbol)
+    if (expr[1] in env.names)
+      throw( LispError("Duplicate identifiers in with expression"))
+    end
+    push!(env.names, expr[1])
+  else
+    throw( LispError("Expected symbol as first item in binding expression"))
+  end
+
+  push!(env.binding_exprs, parse(expr[2]))
+end
+
 function parse( expr::Array{Any} )
     if (expr[1] == :+ || expr[1] == :/ || expr[1] == :* || expr[1] == :mod || expr[1] == :-) && length(expr) == 3
         return Binop(opDict[expr[1]], parse( expr[2] ), parse( expr[3] ) )
@@ -124,8 +145,22 @@ function parse( expr::Array{Any} )
 
     elseif expr[1] == :with
         printlnD("With node beginning")
-        return WithNode( expr[2], parse(expr[3]) , parse(expr[4]) )
-
+        if typeof(expr[2]) == Symbol
+          printlnD("Evaluated symbol")
+          bEnv = BindingEnv(Symbol[], OWL[])
+          push!(bEnv.names, expr[2])
+          push!(bEnv.binding_exprs, parse(expr[3]))
+          return WithNode(bEnv, parse(expr[4]))
+        elseif (typeof(expr[2]) == Vector{Any})
+          printlnD("Got an array of any")
+          bEnv = BindingEnv(Symbol[], OWL[])
+          for i in 2:(length(expr) - 1)
+            addToBindingArray(expr[i], bEnv)
+          end
+          return WithNode(bEnv, expr[length(expr)])
+        else
+          throw( LispError("Invalid syntax for with"))
+        end
     elseif expr[1] == :if0
         return If0Node( parse(expr[2]), parse(expr[3]) , parse(expr[4]) )
 
@@ -172,18 +207,23 @@ function calc( ast::Unop, env::Environment )
 end
 
 function calc( ast::WithNode, env::Environment )
-    ze_binding_val = calc( ast.binding_expr, env )
-    ext_env = CEnvironment( ast.name, NumVal(ze_binding_val), env )
+    ext_env = CEnvironment(Symbol[], RetVal[], mtEnv())
+    for i in 1:length(ast.binding_env.names)
+        ze_binding_val = calc( ast.binding_env.binding_exprs[i], env )
+        push!(ext_env.names, ast.binding_env.names[i])
+        push!(ext_env.values, NumVal(ze_binding_val))
+    end
+    printlnD("ext_env names length = " * string(length(ext_env.names)))
     return calc( ast.body, ext_env )
 end
 
 function calc( ast::SymbolNode, env::mtEnv )
-    Error("Undefined variable!")
+    throw( LispError("Undefined variable!"))
 end
 
 function calc( ast::SymbolNode, env::CEnvironment )
-    if ast.the_sym == env.name
-        return calc(env.value, env)
+    if ast.the_sym in env.names
+        return calc(env.values[findfirst(env.names, ast.the_sym)], env)
     else
         return calc( ast, env.parent )
     end
