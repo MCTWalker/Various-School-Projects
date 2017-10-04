@@ -157,7 +157,7 @@ function parse( expr::Array{Any} )
           for i in 2:(length(expr) - 1)
             addToBindingArray(expr[i], bEnv)
           end
-          return WithNode(bEnv, expr[length(expr)])
+          return WithNode(bEnv, parse(expr[length(expr)]))
         else
           throw( LispError("Invalid syntax for with"))
         end
@@ -243,7 +243,7 @@ function calc( ast::FunDefNode, env::Environment )
 end
 
 function calc( ast::FunAppNode, env::Environment )
-    Error("not yet implemented!")
+    throw(LispError("not yet implemented!"))
 end
 
 end #module
