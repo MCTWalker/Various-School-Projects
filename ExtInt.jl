@@ -7,7 +7,7 @@ using Error
 using Lexer
 export interp
 
-DEBUG = true;
+DEBUG = false;
 
 abstract type OWL end
 
@@ -82,7 +82,7 @@ type CEnvironment <: Environment
 end
 
 type ClosureVal <: RetVal
-    param::Symbol
+    params::Array{Symbol}
     body::OWL
     env::Environment  # this is the environment at definition time!
 end
@@ -137,13 +137,15 @@ function addToBindingArray(expr::Array{Any}, env::BindingEnv)
 end
 
 function parse( expr::Array{Any} )
+
+    printlnD("length expr: " * string(length(expr)))
     if (expr[1] == :+ || expr[1] == :/ || expr[1] == :* || expr[1] == :mod || expr[1] == :-) && length(expr) == 3
         return Binop(opDict[expr[1]], parse( expr[2] ), parse( expr[3] ) )
 
     elseif (expr[1] == :- || expr[1] == :collatz) && length(expr) == 2
         return Unop(opDict[expr[1]], parse( expr[2] ))
 
-    elseif expr[1] == :with && length(expr) == 2
+    elseif expr[1] == :with && length(expr) == 3
         printlnD("With node beginning")
         if (typeof(expr[2]) == Vector{Any})
           printlnD("Got an array of any")
@@ -151,7 +153,7 @@ function parse( expr::Array{Any} )
           for i in 1:(length(expr[2]))
             addToBindingArray(expr[2][i], bEnv)
           end
-          return WithNode(bEnv, parse(expr[length(expr)]))
+          return WithNode(bEnv, parse(expr[3]))
         else
           throw( LispError("Invalid syntax for with"))
         end
@@ -171,9 +173,13 @@ function parse( expr::Array{Any} )
         end
         return FunDefNode(expr[2], parse(expr[3]) )
 
-    elseif typeof(expr[1]) == Array{Any}  && length(expr) == 2
+    elseif typeof(expr[1]) == Vector{Any} || typeof(expr[1]) == Array{Any}
        printlnD("FunAppNode beginning")
-       return FunAppNode( parse(expr[1]), parse(expr[2]) )
+       actual_param_exprs = OWL[];
+       for i in 2:(length(expr))
+         push!(actual_param_exprs, parse(expr[i]))
+       end
+       return FunAppNode( parse(expr[1]), actual_param_exprs )
     end
     throw( LispError("Unknown operator or invalid function arity"))
 end
@@ -243,16 +249,21 @@ function calc( ast::If0Node, env::Environment )
 end
 
 function calc( ast::FunDefNode, env::Environment )
-    return ClosureVal( ast, env )
+    return ClosureVal( ast.formal_parameters, ast.fun_body, env )
 end
 
 function calc( ast::FunAppNode, env::Environment )
-    actual_parameter = calc( ast.arg_expr, env )
+    actual_parameters = NumVal[]
+    for i in 1:length(ast.arg_exprs)
+      push!(actual_parameters, NumVal(calc(ast.arg_exprs[i], env)))
+    end
+    #todo check if actual_parameters length matches formal parameters length
     the_closure_val = calc( ast.fun_expr, env )  # will always be a closureval!
     #parent = env
     parent = the_closure_val.env
-    ext_env = ConcreteEnvironment(the_closure_val.param, actual_parameter, parent )
+    ext_env = CEnvironment(the_closure_val.params, actual_parameters, parent )
     return calc( the_closure_val.body, ext_env )
+    #return ext_env
 end
 
 end #module
