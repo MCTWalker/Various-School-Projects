@@ -259,6 +259,9 @@ function calc( ast::FunAppNode, env::Environment )
     end
     #todo check if actual_parameters length matches formal parameters length
     the_closure_val = calc( ast.fun_expr, env )  # will always be a closureval!
+    if length(the_closure_val.params) != length(actual_parameters)
+      throw( LispError("Invalid arity for lambda"))
+    end
     #parent = env
     parent = the_closure_val.env
     ext_env = CEnvironment(the_closure_val.params, actual_parameters, parent )
