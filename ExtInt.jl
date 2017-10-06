@@ -7,7 +7,7 @@ using Error
 using Lexer
 export interp
 
-debug = true;
+DEBUG = true;
 
 abstract type OWL end
 
@@ -51,13 +51,13 @@ type IdNode <: OWL
 end
 
 type FunDefNode <: OWL
-    formal_parameter::Symbol
+    formal_parameters::Array{Symbol}
     fun_body::OWL
 end
 
 type FunAppNode <: OWL
     fun_expr::OWL
-    arg_expr::OWL
+    arg_exprs::Array{OWL}
 end
 
 # Rejigger our type hierarchy to better support return values
@@ -88,7 +88,7 @@ type ClosureVal <: RetVal
 end
 
 function printlnD(str::String)
-  if (debug)
+  if (DEBUG)
     println(str)
   end
 end
@@ -143,35 +143,39 @@ function parse( expr::Array{Any} )
     elseif (expr[1] == :- || expr[1] == :collatz) && length(expr) == 2
         return Unop(opDict[expr[1]], parse( expr[2] ))
 
-    elseif expr[1] == :with
+    elseif expr[1] == :with && length(expr) == 2
         printlnD("With node beginning")
-        if typeof(expr[2]) == Symbol
-          printlnD("Evaluated symbol")
-          bEnv = BindingEnv(Symbol[], OWL[])
-          push!(bEnv.names, expr[2])
-          push!(bEnv.binding_exprs, parse(expr[3]))
-          return WithNode(bEnv, parse(expr[4]))
-        elseif (typeof(expr[2]) == Vector{Any})
+        if (typeof(expr[2]) == Vector{Any})
           printlnD("Got an array of any")
           bEnv = BindingEnv(Symbol[], OWL[])
-          for i in 2:(length(expr) - 1)
-            addToBindingArray(expr[i], bEnv)
+          for i in 1:(length(expr[2]))
+            addToBindingArray(expr[2][i], bEnv)
           end
           return WithNode(bEnv, parse(expr[length(expr)]))
         else
           throw( LispError("Invalid syntax for with"))
         end
-    elseif expr[1] == :if0
+    elseif expr[1] == :if0 && length(expr) == 4
         return If0Node( parse(expr[2]), parse(expr[3]) , parse(expr[4]) )
 
-    elseif expr[1] == :lambda
-        return FunDefNode( expr[2], parse(expr[3]) )
+    elseif expr[1] == :lambda && length(expr) == 3
+        printlnD("lambda beginning")
+        if typeof(expr[2]) == Vector{Any}
+          for i in 1:length(expr[2])
+            if typeof(expr[2][i]) != Symbol
+              throw( LispError("Invalid formal parameter in lambda"))
+            end
+          end
+        else
+          throw( LispError("lambda formal parameters must be in parentheses"))
+        end
+        return FunDefNode(expr[2], parse(expr[3]) )
 
-    else
+    elseif typeof(expr[1]) == Array{Any}  && length(expr) == 2
        printlnD("FunAppNode beginning")
-        return FunAppNode( parse(expr[1]), parse(expr[2]) )
+       return FunAppNode( parse(expr[1]), parse(expr[2]) )
     end
-    throw( LispError("Unknown operator or invalid function call"))
+    throw( LispError("Unknown operator or invalid function arity"))
 end
 
 function interp( cs::AbstractString )
@@ -243,7 +247,12 @@ function calc( ast::FunDefNode, env::Environment )
 end
 
 function calc( ast::FunAppNode, env::Environment )
-    throw(LispError("not yet implemented!"))
+    actual_parameter = calc( ast.arg_expr, env )
+    the_closure_val = calc( ast.fun_expr, env )  # will always be a closureval!
+    #parent = env
+    parent = the_closure_val.env
+    ext_env = ConcreteEnvironment(the_closure_val.param, actual_parameter, parent )
+    return calc( the_closure_val.body, ext_env )
 end
 
 end #module
