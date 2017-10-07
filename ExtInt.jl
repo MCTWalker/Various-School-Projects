@@ -124,16 +124,23 @@ function addToBindingArray(expr::Array{Any}, env::BindingEnv)
     throw( LispError("Invalid arity for with node binding expression"))
   end
 
-  if (typeof(expr[1]) == Symbol)
+  if (typeof(expr[1]) == Symbol && !isKeyWord(expr[1]))
     if (expr[1] in env.names)
       throw( LispError("Duplicate identifiers in with expression"))
     end
     push!(env.names, expr[1])
   else
-    throw( LispError("Expected symbol as first item in binding expression"))
+    throw( LispError("Invalid symbol as first item in binding expression"))
   end
 
   push!(env.binding_exprs, parse(expr[2]))
+end
+
+function isKeyWord(var)
+  if haskey(opDict, var) || var == :if0 || var == :with || var == :lambda
+    return true
+  end
+  return false
 end
 
 function parse( expr::Array{Any} )
@@ -166,25 +173,31 @@ function parse( expr::Array{Any} )
 
     elseif expr[1] == :lambda && length(expr) == 3
         printlnD("lambda beginning")
+        formal_params = Any[]
         if typeof(expr[2]) == Vector{Any}
           for i in 1:length(expr[2])
-            if typeof(expr[2][i]) != Symbol
+            if typeof(expr[2][i]) != Symbol || isKeyWord(expr[2][i]) || findfirst(formal_params, expr[2][i]) != 0
               throw( LispError("Invalid formal parameter in lambda"))
             end
+            push!(formal_params, expr[2][i])
           end
         else
           throw( LispError("lambda formal parameters must be in parentheses"))
         end
-        return FunDefNode(expr[2], parse(expr[3]) )
+        return FunDefNode(formal_params, parse(expr[3]) )
 
     else
        printlnD("FunAppNode beginning")
+       if isKeyWord(expr[1])
+         throw( LispError("cannot use keyword as symbol"))
+       end
        actual_param_exprs = OWL[];
        if (length(expr) > 1)
          for i in 2:(length(expr))
            push!(actual_param_exprs, parse(expr[i]))
          end
        end
+
        return FunAppNode( parse(expr[1]), actual_param_exprs )
     end
 end
