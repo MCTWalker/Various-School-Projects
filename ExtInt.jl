@@ -151,7 +151,11 @@ function parse( expr::Array{Any} )
           printlnD("Got an array of any")
           bEnv = BindingEnv(Symbol[], OWL[])
           for i in 1:(length(expr[2]))
-            addToBindingArray(expr[2][i], bEnv)
+            if (typeof(expr[2][i]) == Vector{Any})
+              addToBindingArray(expr[2][i], bEnv)
+            else
+              throw( LispError("Invalid syntax for with"))
+            end
           end
           return WithNode(bEnv, parse(expr[3]))
         else
@@ -173,39 +177,44 @@ function parse( expr::Array{Any} )
         end
         return FunDefNode(expr[2], parse(expr[3]) )
 
-    elseif typeof(expr[1]) == Vector{Any} || typeof(expr[1]) == Array{Any}
+    else
        printlnD("FunAppNode beginning")
        actual_param_exprs = OWL[];
-       for i in 2:(length(expr))
-         push!(actual_param_exprs, parse(expr[i]))
+       if (length(expr) > 1)
+         for i in 2:(length(expr))
+           push!(actual_param_exprs, parse(expr[i]))
+         end
        end
        return FunAppNode( parse(expr[1]), actual_param_exprs )
     end
-    throw( LispError("Unknown operator or invalid function arity"))
 end
 
 function interp( cs::AbstractString )
     lxd = Lexer.lex( cs )
     ast = parse( lxd )
-    return calc( ast, mtEnv() )
+    return calc( ast )
 end
 
 function calc( ast::NumNode, env::Environment )
-    return ast.n
+    return NumVal(ast.n)
 end
 
 function calc( ast::NumVal, env::Environment )
-    return ast.n
+    return ast
 end
 
 function calc( ast::Binop, env::Environment )
     printlnD("Calculating binop")
-    result = calc( ast.rhs, env )
-    printlnD(string(result))
-    if (ast.op == opDict[:/] && result == 0)
+    rhsresult = calc( ast.rhs, env )
+    lhsresult = calc( ast.lhs, env )
+    if typeof(rhsresult) != NumVal || typeof(lhsresult) != NumVal
+      throw( LispError("Tried to binop a non-number"))
+    end
+    printlnD(string(rhsresult))
+    if (ast.op == opDict[:/] && rhsresult.n == 0)
         throw( LispError("Division by zero"))
     end
-    return ast.op(calc( ast.lhs, env ), result)
+    return ast.op(lhsresult.n, rhsresult.n)
 end
 
 function calc( ast::Unop, env::Environment )
@@ -217,13 +226,14 @@ function calc( ast::Unop, env::Environment )
 end
 
 function calc( ast::WithNode, env::Environment )
-    ext_env = CEnvironment(Symbol[], RetVal[], mtEnv())
+    ext_env = CEnvironment(Symbol[], RetVal[], env)
     for i in 1:length(ast.binding_env.names)
         ze_binding_val = calc( ast.binding_env.binding_exprs[i], env )
         push!(ext_env.names, ast.binding_env.names[i])
-        push!(ext_env.values, NumVal(ze_binding_val))
+        push!(ext_env.values, ze_binding_val)
     end
     printlnD("ext_env names length = " * string(length(ext_env.names)))
+    #return ext_env
     return calc( ast.body, ext_env )
 end
 
@@ -252,13 +262,18 @@ function calc( ast::FunDefNode, env::Environment )
     return ClosureVal( ast.formal_parameters, ast.fun_body, env )
 end
 
+function calc( closureval::ClosureVal, env::Environment )
+    return closureval
+end
+
 function calc( ast::FunAppNode, env::Environment )
     actual_parameters = NumVal[]
     for i in 1:length(ast.arg_exprs)
-      push!(actual_parameters, NumVal(calc(ast.arg_exprs[i], env)))
+      push!(actual_parameters, calc(ast.arg_exprs[i], env))
     end
     #todo check if actual_parameters length matches formal parameters length
     the_closure_val = calc( ast.fun_expr, env )  # will always be a closureval!
+
     if length(the_closure_val.params) != length(actual_parameters)
       throw( LispError("Invalid arity for lambda"))
     end
@@ -267,6 +282,10 @@ function calc( ast::FunAppNode, env::Environment )
     ext_env = CEnvironment(the_closure_val.params, actual_parameters, parent )
     return calc( the_closure_val.body, ext_env )
     #return ext_env
+end
+
+function calc( ast::OWL)
+  calc(ast, mtEnv() )
 end
 
 end #module
