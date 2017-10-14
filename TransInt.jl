@@ -41,6 +41,10 @@ type If0Node <: OWL
   nonzero_branch::OWL
 end
 
+type And <: OWL
+  exprs::Array{OWL}
+end
+
 type BindingEnv <:OWL
   names::Array{Symbol}
   binding_exprs::Array{OWL}
@@ -145,7 +149,7 @@ function addToBindingArray(expr::Array{Any}, env::BindingEnv)
 end
 
 function isKeyWord(var)
-  if haskey(opDict, var) || var == :if0 || var == :with || var == :lambda
+  if haskey(opDict, var) || var == :if0 || var == :with || var == :lambda || var == :and
     return true
   end
   return false
@@ -184,8 +188,16 @@ function parse( expr::Array{Any} )
         else
           throw( LispError("Invalid syntax for with"))
         end
+
     elseif expr[1] == :if0 && length(expr) == 4
         return If0Node( parse(expr[2]), parse(expr[3]) , parse(expr[4]) )
+
+    elseif expr[1] == :and && length(expr) > 2
+        exprs = OWL[]
+        for i in 2:length(expr)
+            push!(exprs, parse(expr[i]))
+        end
+        return And(exprs)
 
     elseif expr[1] == :lambda && length(expr) == 3
         printlnD("lambda beginning")
@@ -218,8 +230,63 @@ function parse( expr::Array{Any} )
     end
 end
 
-function analyze(ast::NumNode)
-	return ast
+function analyze( ast::SymbolNode )
+    return ast
+end
+
+function analyze( ast::NumNode )
+    return ast
+end
+
+function analyze( ast::If0Node )
+    acond = analyze( ast.condition )
+    azb = analyze( ast.zero_branch )
+    anzb = analyze( ast.nonzero_branch )
+    return If0Node( acond, azb, anzb )
+end
+
+# type If0Node <: OWL
+#   condition::OWL
+#   zero_branch::OWL
+#   nonzero_branch::OWL
+# end
+function analyze( ast::And )
+   if length(ast.exprs) == 1
+     return If0Node(analyze(ast.exprs[1]), NumNode(0), NumNode(1))
+   else
+    return If0Node( analyze(ast.exprs[1]), NumNode(0), analyze(And(ast.exprs[2:length(ast.exprs)]) ))
+   end
+end
+
+function analyze(exprs::Array{OWL})
+  for i in 1:length(exprs)
+    exprs[i] = analyze(exprs[i])
+  end
+  return exprs
+end
+
+function analyze( ast::FunDefNode )
+    return FunDefNode( ast.formal_parameters, analyze( ast.fun_body ) )
+end
+
+function analyze( ast::FunAppNode )
+    return FunAppNode( analyze( ast.fun_expr), analyze(ast.arg_exprs) )
+end
+
+function analyze( ast::WithNode )
+    fdn = FunDefNode( ast.binding_env.names, ast.body )
+    return FunAppNode( fdn, analyze( ast.binding_env.binding_exprs ) )
+end
+
+function analyze( ast::Binop )
+    alhs = analyze( ast.lhs )
+    arhs = analyze( ast.rhs )
+    return Binop(ast.op, alhs, arhs )
+end
+
+function analyze( ast::Unop )
+    arhs = analyze( ast.rhs )
+    return Unop( ast.op, arhs )
 end
 
 function analyze(ast::PlusNode)
@@ -270,6 +337,9 @@ end
 
 function calc( ast::Unop, env::Environment )
     result = calc( ast.rhs, env )
+    if (typeof(result) != NumVal)
+      throw( LispError("tried to perform a unary operation on non-number"))
+    end
     if (ast.op == collatz && result.n <= 0 )
         throw( LispError("collatz of a negative number or zero was attempted"))
     end
@@ -302,7 +372,10 @@ end
 
 function calc( ast::If0Node, env::Environment )
     cond = calc( ast.condition, env )
-    if cond == 0
+    if (typeof(cond) != NumVal)
+      throw( LispError("tried to perform a if0 evaluation on non-number"))
+    end
+    if cond.n == 0
         return calc( ast.zero_branch, env )
     else
         return calc( ast.nonzero_branch, env )
@@ -318,11 +391,11 @@ function calc( closureval::ClosureVal, env::Environment )
 end
 
 function calc( ast::FunAppNode, env::Environment )
-    actual_parameters = NumVal[]
+    actual_parameters = RetVal[]
     for i in 1:length(ast.arg_exprs)
       push!(actual_parameters, calc(ast.arg_exprs[i], env))
     end
-    #todo check if actual_parameters length matches formal parameters length
+
     the_closure_val = calc( ast.fun_expr, env )  # will always be a closureval!
 
     if length(the_closure_val.params) != length(actual_parameters)
@@ -338,5 +411,45 @@ end
 function calc( ast::OWL)
   calc(ast, mtEnv() )
 end
+
+# evaluate a series of tests in a file
+function interpf( fn::AbstractString )
+  f = open( fn )
+
+  cur_prog = ""
+  counter = 1
+  for ln in eachline(f)
+      ln = chomp( ln )
+      cur_prog *= ln
+      if length(ln) != 0
+          println( "" )
+          println( "--------- Evaluating ----------" )
+          println(string(counter) * ". " * cur_prog )
+          println( "---------- Returned -----------" )
+          try
+              println( interp( cur_prog ) )
+          catch errobj
+              println( ">> ERROR: lxd" )
+              lxd = Lexer.lex( cur_prog )
+              println( lxd )
+              println( ">> ERROR: ast" )
+              ast = parse( lxd )
+              println( ast )
+              println( ">> ERROR: rethrowing error" )
+              println( errobj )
+          end
+          println( "------------ done -------------" )
+          println( "" )
+          cur_prog = ""
+          counter = counter + 1
+      else
+          cur_prog *= ln
+      end
+  end
+
+  close( f )
+end
+
+# ============================================================================
 
 end #module
