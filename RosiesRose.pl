@@ -1,26 +1,26 @@
-item(Balloons).
-item(Candles).
-item(Chocolates).
-item(Placecards).
-item(Streamers).
+item(balloons).
+item(candles).
+item(chocolates).
+item(placecards).
+item(streamers).
  
-customer(Jeremy).
-customer(Stella).
-customer(Hugh).
-customer(Leroy).
-customer(Ida).
+customer(jeremy).
+customer(stella).
+customer(hugh).
+customer(leroy).
+customer(ida).
  
-Event(Anniversary).
-Event(CharityAuction).
-Event(Retirement).
-Event(SeniorProm).
-Event(Wedding).
+event(anniversary).
+event(charityAuction).
+event(retirement).
+event(seniorProm).
+event(wedding).
 
-Rose(CottageBeauty).
-Rose(GoldenSunset).
-Rose(MountainBloom).
-Rose(PinkParadise).
-Rose(SweetDreams).
+rose(cottageBeauty).
+rose(goldenSunset).
+rose(mountainBloom).
+rose(pinkParadise).
+rose(sweetDreams).
 
 solve :-
     item(JeremyItem), item(StellaItem), item(HughItem), item(LeroyItem), item(IdaItem),
@@ -29,31 +29,38 @@ solve :-
     event(JeremyEvent), event(StellaEvent), event(HughEvent), event(LeroyEvent), event(IdaEvent),
     all_different([JeremyEvent, StellaEvent, HughEvent, LeroyEvent, IdaEvent]),
 	
-	Rose(JeremyRose), Rose(StellaRose), Rose(HughRose), Rose(LeroyRose), Rose(IdaRose),
+	rose(JeremyRose), rose(StellaRose), rose(HughRose), rose(LeroyRose), rose(IdaRose),
     all_different([JeremyRose, StellaRose, HughRose, LeroyRose, IdaRose]),
  
-    Quartets = [ [Jeremy, JeremyItem, JeremyEvent, JeremyRose],
-                [Stella, StellaItem, StellaEvent, StellaRose],
-                [Hugh, HughItem, HughEvent, HughRose],
-				[Ida, IdaItem, IdaEvent, IdaRose],
-                [Leroy, LeroyItem, LeroyEvent, LeroyRose] ],
+    Quartets = [ [jeremy, JeremyItem, JeremyEvent, JeremyRose],
+                [stella, StellaItem, StellaEvent, StellaRose],
+                [hugh, HughItem, HughEvent, HughRose],
+				[ida, IdaItem, IdaEvent, IdaRose],
+                [leroy, LeroyItem, LeroyEvent, LeroyRose] ],
 				
-	member([Jeremy, _, SeniorProm, _], Quartets),
-	\+ member([Stella, _, Wedding, _], Quartets),
-	member([Stella, _, _, CottageBeauty], Quartets),
-	member([Hugh, _, _, PinkParadise], Quartets),
-	\+ member([Hugh, _, CharityAuction, _], Quartets),
-	\+ member([Hugh, _, Wedding, _], Quartets),
-	member([_, Streamers, Anniversary, _], Quartets),
-	member([_, Balloons, Wedding, _], Quartets),
-	member([_, Chocolates, _, SweetDreams], Quartets),
-	\+ member([Jeremy, _, _, MountainBloom], Quartets),
-	member([Leroy, _, Retirement, _], Quartets),
-	member([_, candles, SeniorProm, _], Quartets),
+	member([jeremy, _, seniorProm, _], Quartets),
+	\+ member([stella, _, wedding, _], Quartets),
+	member([stella, _, _, cottageBeauty], Quartets),
+	member([hugh, _, _, pinkParadise], Quartets),
+	\+ member([hugh, _, charityAuction, _], Quartets),
+	\+ member([hugh, _, wedding, _], Quartets),
+	member([_, streamers, anniversary, _], Quartets),
+	member([_, balloons, wedding, _], Quartets),
+	member([_, chocolates, _, sweetDreams], Quartets),
+	\+ member([jeremy, _, _, mountainBloom], Quartets),
+	member([leroy, _, retirement, _], Quartets),
+	member([_, candles, seniorProm, _], Quartets),
 	
-	
+	tell(jeremy, JeremyItem, JeremyEvent, JeremyRose),
+    tell(stella, StellaItem, StellaEvent, StellaRose),
+    tell(hugh, HughItem, HughEvent, HughRose),
+	tell(leroy, LeroyItem, LeroyEvent, LeroyRose),
+    tell(ida, IdaItem, IdaEvent, IdaRose).
 	
 all_different([H | T]) :- member(H, T), !, fail.
 all_different([_ | T]) :- all_different(T).
 all_different([_]).
 
+tell(W, X, Y, Z) :-
+    write('Customer '), print(W), write(' got the item '), write(X), write(' for the event '), write(Y),
+    write(' with roses of type '), write(Z), write('.'), nl.
