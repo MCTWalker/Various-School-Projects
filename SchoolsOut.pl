@@ -38,21 +38,21 @@ solve :-
 				[parnell, Parnellsubject, Parnellstate, Parnellactivity],
                 [mcevoy, Mcevoysubject, Mcevoystate, Mcevoyactivity] ],
 				
-	member([gross, math, _, _], Quartets) :- \+ member([gross, science, _, _], Quartets),
-	member([gross, science, _, _], Quartets) :- \+ member([gross, math, _, _], Quartets),
-	member([gross, _, florida, _], Quartets) :- member([gross, _, _, antiquing], Quartets),
-	member([gross, _, california, _], Quartets) :- \+ member([gross, _, _, antiquing], Quartets),
+	\+ member([gross, science, _, _], Quartets) -> member([gross, math, _, _], Quartets) ,
+	\+ member([gross, math, _, _], Quartets) -> member([gross, science, _, _], Quartets),
+	member([gross, _, _, antiquing], Quartets) -> member([gross, _, florida, _], Quartets),
+	\+ member([gross, _, _, antiquing], Quartets) -> member([gross, _, california, _], Quartets) ,
 	
 	member([_, science, waterskiing, _], Quartets),
-	member([_, science, waterskiing, florida], Quartets) :- \+ member([_, science, waterskiing, california], Quartets),
-	member([_, science, waterskiing, california], Quartets) :- \+ member([_, science, waterskiing, florida], Quartets),
+	\+ member([_, science, waterskiing, california], Quartets) -> member([_, science, waterskiing, florida], Quartets) ,
+	\+ member([_, science, waterskiing, florida], Quartets) -> member([_, science, waterskiing, california], Quartets),
 	
 	member([mcevoy, history, _, _], Quartets),
-	member([mcevoy, history, _, maine], Quartets) :- \+ member([mcevoy, history, _, oregon], Quartets),
-	member([mcevoy, history, _, oregon], Quartets) :- \+ member([mcevoy, history, _, maine], Quartets),	
+	member([mcevoy, history, _, oregon], Quartets) -> member([mcevoy, history, _, maine], Quartets) ,
+	\+ member([mcevoy, history, _, maine], Quartets) -> member([mcevoy, history, _, oregon], Quartets),	
 	
-	member([appleton, english, _, virginia], Quartets) :- member([_, english, _, virginia], Quartets),
-	member([parnell, _, spelunking, virginia], Quartets) :- \+ member([_, english, _, virginia], Quartets),	
+	member([_, english, _, virginia], Quartets) -> member([appleton, english, _, virginia], Quartets),
+	\+ member([_, english, _, virginia], Quartets) -> member([parnell, _, spelunking, virginia], Quartets),	
 	
 	\+ member([_, gym, _, maine], Quartets),
 	\+ member([_, _, sightseeing, maine], Quartets),
