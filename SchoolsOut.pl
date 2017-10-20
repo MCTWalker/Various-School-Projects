@@ -56,7 +56,10 @@ solve :-
 	\+ member([_, gym, maine, _], Quartets),
 	\+ member([_, _, maine, sightseeing], Quartets),
 	\+ member([gross, _, _, camping], Quartets),
-	
+    
+	\+ member([mcevoy, _, _, camping], Quartets),	
+	\+ member([knight, _, _, camping], Quartets),
+    
 	\+ member([mcevoy, _, _, antiquing], Quartets),	
 	\+ member([knight, _, _, antiquing], Quartets),
 	
