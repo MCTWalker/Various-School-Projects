@@ -39,7 +39,7 @@ solve :-
                 [mcevoy, Mcevoysubject, Mcevoystate, Mcevoyactivity] ],
 				
 	(member([gross, math, _, _], Quartets) ; member([gross, science, _, _], Quartets)) ,
-	(member([gross, _, florida, _], Quartets) ; member([gross, _, california, _], Quartets)),
+	(member([gross, _, _, antiquing], Quartets) ->   member([gross, _, florida, _], Quartets) ; member([gross, _, california, _], Quartets)),
 	
 	member([mcevoy, history, _, _], Quartets),
 	(member([mcevoy, _, maine, _], Quartets) ; member([mcevoy, _, oregon, _], Quartets)) ,
