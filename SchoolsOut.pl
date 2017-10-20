@@ -38,31 +38,27 @@ solve :-
 				[parnell, Parnellsubject, Parnellstate, Parnellactivity],
                 [mcevoy, Mcevoysubject, Mcevoystate, Mcevoyactivity] ],
 				
-	\+ member([gross, science, _, _], Quartets) -> member([gross, math, _, _], Quartets) ,
-	\+ member([gross, math, _, _], Quartets) -> member([gross, science, _, _], Quartets),
-	member([gross, _, _, antiquing], Quartets) -> member([gross, _, florida, _], Quartets),
-	\+ member([gross, _, _, antiquing], Quartets) -> member([gross, _, california, _], Quartets) ,
-	
-	member([_, science, waterskiing, _], Quartets),
-	\+ member([_, science, waterskiing, california], Quartets) -> member([_, science, waterskiing, florida], Quartets) ,
-	\+ member([_, science, waterskiing, florida], Quartets) -> member([_, science, waterskiing, california], Quartets),
+	(member([gross, math, _, _], Quartets) ; member([gross, science, _, _], Quartets)) ,
+	(member([gross, _, florida, _], Quartets) ; member([gross, _, california, _], Quartets)),
 	
 	member([mcevoy, history, _, _], Quartets),
-	member([mcevoy, history, _, oregon], Quartets) -> member([mcevoy, history, _, maine], Quartets) ,
-	\+ member([mcevoy, history, _, maine], Quartets) -> member([mcevoy, history, _, oregon], Quartets),	
+	(member([mcevoy, _, maine, _], Quartets) ; member([mcevoy, _, oregon, _], Quartets)) ,
 	
-	member([_, english, _, virginia], Quartets) -> member([appleton, english, _, virginia], Quartets),
-	\+ member([_, english, _, virginia], Quartets) -> member([parnell, _, spelunking, virginia], Quartets),	
+	(member([_, science, florida, waterskiing], Quartets) ; member([_, science, california, waterskiing], Quartets)) ,
 	
-	\+ member([_, gym, _, maine], Quartets),
-	\+ member([_, _, sightseeing, maine], Quartets),
-	\+ member([gross, _, camping, _], Quartets),
+	member([parnell,_,_,spelunking], Quartets),
 	
-	\+ member([mcevoy, _, antiquing, _], Quartets),	
-	\+ member([knight, _, antiquing, _], Quartets),
+	\+ member([mcevoy, _, virginia, _], Quartets),	
+	\+ member([knight, _, virginia, _], Quartets),	
 	
-	\+ member([mcevoy, _, _, virginia], Quartets),	
-	\+ member([knight, _, _, virginia], Quartets),	
+	(member([_, english, virginia, _], Quartets) -> member([appleton, _, virginia,  _], Quartets) ; member([parnell, _, virginia, _], Quartets)),
+
+	\+ member([_, gym, maine, _], Quartets),
+	\+ member([_, _, maine, sightseeing], Quartets),
+	\+ member([gross, _, _, camping], Quartets),
+	
+	\+ member([mcevoy, _, _, antiquing], Quartets),	
+	\+ member([knight, _, _, antiquing], Quartets),
 	
 	tell(appleton, Appletonsubject, Appletonstate, Appletonactivity),
     tell(gross, Grosssubject, Grossstate, Grossactivity),
