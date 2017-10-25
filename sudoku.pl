@@ -105,30 +105,60 @@ getCube(Board, Number, AsList) :-
 
 :- use_module(library(lists)).
 
+list_empty([], true).
+list_empty([_|_], false).
+
+replace([_|T], 0, X, [X|T]).
+replace([H|T], I, X, [H|R]):- I > -1, NI is I-1, replace(T, NI, X, R), !.
+replace(L, _, _, L).
+
+getCubeWrapper(Board, CubeIndex, Cubearray, Cube, NewCubeArray) :-
+	nth0(CubeIndex, Cubearray, CurCube),
+	(list_empty(CurCube, true) -> (   getCube(Board, CubeIndex, Cube), 
+                               	   replace(Cubearray, CubeIndex, Cube, NewCubeArray), 
+								   write('NewCube is'), write(Cube), nl) ;  
+                               	(  replace(Cubearray, CubeIndex, Cube, Cubearray),
+									write('list was not empty'))).
+
 % cubeNum: (RowNum, ColNum, WhichCube)
 % columnAsList: (Board, ColumnNumber, AsRow)
-fillHoles(_, [], [], _), !.
-fillHoles(Board, [H|T], [PosH|PosT], Row) :- 
-	cubeNum(div(PosH, 9), mod(PosH, 8) , CubeNum),
-	getCube(Board, CubeNum, Cube),
+fillHoles(_, [], [], _, _).
+fillHoles(Board, [H|T], [PosH|PosT], Row, CubeArray) :-
+	ColNum is mod(PosH, 8),
+	cubeNum(div(PosH, 9), ColNum , CubeNum),
+%	getCubeWrapper(Board, CubeNum, CubeArray, Cube, NewCubeArray),
+	getCube(Board, CubeNum, Cube), !,
+	write('After nth0 Cube is'), write(Cube), nl,
 	columnAsList(Board, ColNum, ColResult),
-	(nonvar(H); var(H), digit(H), is_set(Row), is_set(ColResult), is_set(Cube)),
-	fillHoles(Board, T, PosT, Row).
+	write('ColumnList is'), write(ColResult), nl,
+	(nonvar(H); var(H), digit(H), is_set(Row), is_set(ColResult),  is_set(Cube)),
+	write('After Checks board is'), printBoard(Board),
+	fillHoles(Board, T, PosT, Row, CubeArray).
 
-populateLists(_, [], []).
-populateLists(Board, [BoardH|BoardT], [PosH|PosT]) :- 
-	fillHoles(Board, BoardH, PosH, BoardH), populateLists(Board, BoardT, PosT).
+populateLists(_, [], [], _).
+populateLists(Board, [BoardH|BoardT], [PosH|PosT], CubeArray) :- 
+	fillHoles(Board, BoardH, PosH, BoardH, CubeArray), populateLists(Board, BoardT, PosT, CubeArray).
  
 solve(Board) :-
-    CubeArray = [[],
-		 [],
-		 [],
-		 [],
-		 [],
-		 [],
-		 [],
-		 [],
-		 []],
+	getCube(Board, 0, Cube0),
+	getCube(Board, 1, Cube1),
+	getCube(Board, 2, Cube2),
+	getCube(Board, 3, Cube3),
+	getCube(Board, 4, Cube4),
+	getCube(Board, 5, Cube5),
+	getCube(Board, 6, Cube6),
+	getCube(Board, 7, Cube7),
+	getCube(Board, 8, Cube8),
+    CubeArray = [Cube0,
+		 Cube1,
+		 Cube2,
+		 Cube3,
+		 Cube4,
+		 Cube5,
+		 Cube6,
+		 Cube7,
+		 Cube8],
+%		 write('CubeArray is'), write(CubeArray), nl,
 	BoardPositions = [[0, 1, 2, 3, 4, 5, 6, 7, 8],
                  [9, 10, 11, 12, 13, 14, 15, 16, 17],
                  [18, 19, 20, 21, 22, 23, 24, 25, 26],
@@ -138,7 +168,7 @@ solve(Board) :-
                  [54, 55, 56, 57, 58, 59, 60, 61, 62],
                  [63, 64, 65, 66, 67, 68, 69, 70, 71],
                  [72, 73, 74, 75, 76, 77, 78, 79, 80]],
-	populateLists(Board, Board, BoardPositions).
+	populateLists(Board, Board, BoardPositions, CubeArray).
 	
  
 % ---- PUT CODE HERE ---
