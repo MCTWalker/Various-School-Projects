@@ -104,71 +104,29 @@ getCube(Board, Number, AsList) :-
 % ---- PUT CODE HERE ---
 
 :- use_module(library(lists)).
-
-list_empty([], true).
-list_empty([_|_], false).
-
-replace([_|T], 0, X, [X|T]).
-replace([H|T], I, X, [H|R]):- I > -1, NI is I-1, replace(T, NI, X, R), !.
-replace(L, _, _, L).
-
-getCubeWrapper(Board, CubeIndex, Cubearray, Cube, NewCubeArray) :-
-	nth0(CubeIndex, Cubearray, CurCube),
-	(list_empty(CurCube, true) -> (   getCube(Board, CubeIndex, Cube), 
-                               	   replace(Cubearray, CubeIndex, Cube, NewCubeArray), 
-								   write('NewCube is'), write(Cube), nl) ;  
-                               	(  replace(Cubearray, CubeIndex, Cube, Cubearray),
-									write('list was not empty'))).
-
+			
+fillSpace(H, Row, RowNum, ColNum, Board) :-
+	cubeNum(RowNum, ColNum , CubeNum),
+	getCube(Board, CubeNum, Cube), 
+	columnAsList(Board, ColNum, ColResult),
+	(nonvar(H); var(H), digit(H), is_set(Row), is_set(ColResult),  is_set(Cube)).
+			
 % cubeNum: (RowNum, ColNum, WhichCube)
 % columnAsList: (Board, ColumnNumber, AsRow)
-fillHoles(_, [], [], _, _).
-fillHoles(Board, [H|T], [PosH|PosT], Row, CubeArray) :-
-	ColNum is mod(PosH, 8),
-	cubeNum(div(PosH, 9), ColNum , CubeNum),
-%	getCubeWrapper(Board, CubeNum, CubeArray, Cube, NewCubeArray),
-	getCube(Board, CubeNum, Cube), !,
-	write('After nth0 Cube is'), write(Cube), nl,
-	columnAsList(Board, ColNum, ColResult),
-	write('ColumnList is'), write(ColResult), nl,
-	(nonvar(H); var(H), digit(H), is_set(Row), is_set(ColResult),  is_set(Cube)),
-	write('After Checks board is'), printBoard(Board),
-	fillHoles(Board, T, PosT, Row, CubeArray).
+fillHoles(_, [], _, _, _).
+fillHoles(Board, [H|T], Row, ColNum, RowNum) :-
+	fillSpace(H, Row, RowNum, ColNum, Board),
+	NewColNum is ColNum + 1,
+	fillHoles(Board, T, Row, NewColNum, RowNum).
 
-populateLists(_, [], [], _).
-populateLists(Board, [BoardH|BoardT], [PosH|PosT], CubeArray) :- 
-	fillHoles(Board, BoardH, PosH, BoardH, CubeArray), populateLists(Board, BoardT, PosT, CubeArray).
+populateLists(_, [], _).
+populateLists(Board, [BoardH|BoardT], RowNum) :- 
+	fillHoles(Board, BoardH, BoardH, 0, RowNum), 
+	NewRowNum is RowNum + 1,
+	populateLists(Board, BoardT, NewRowNum).
  
 solve(Board) :-
-	getCube(Board, 0, Cube0),
-	getCube(Board, 1, Cube1),
-	getCube(Board, 2, Cube2),
-	getCube(Board, 3, Cube3),
-	getCube(Board, 4, Cube4),
-	getCube(Board, 5, Cube5),
-	getCube(Board, 6, Cube6),
-	getCube(Board, 7, Cube7),
-	getCube(Board, 8, Cube8),
-    CubeArray = [Cube0,
-		 Cube1,
-		 Cube2,
-		 Cube3,
-		 Cube4,
-		 Cube5,
-		 Cube6,
-		 Cube7,
-		 Cube8],
-%		 write('CubeArray is'), write(CubeArray), nl,
-	BoardPositions = [[0, 1, 2, 3, 4, 5, 6, 7, 8],
-                 [9, 10, 11, 12, 13, 14, 15, 16, 17],
-                 [18, 19, 20, 21, 22, 23, 24, 25, 26],
-                 [27, 28, 29, 30, 31, 32, 33, 34, 35],
-                 [36, 37, 38, 39, 40, 41, 42, 43, 44],
-                 [45, 46, 47, 48, 49, 50, 51, 52, 53],
-                 [54, 55, 56, 57, 58, 59, 60, 61, 62],
-                 [63, 64, 65, 66, 67, 68, 69, 70, 71],
-                 [72, 73, 74, 75, 76, 77, 78, 79, 80]],
-	populateLists(Board, Board, BoardPositions, CubeArray).
+	populateLists(Board, Board, 0).
 	
  
 % ---- PUT CODE HERE ---
