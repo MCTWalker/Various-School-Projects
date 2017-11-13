@@ -415,14 +415,110 @@ defmodule TopSupervisor do
  
   def init(ns) do
     children = [
+      supervisor(DatabaseSupervisor, [ns]),
+	  supervisor(CustomerService, [ns])
+    ]
+ 
+    supervise(children, strategy: :one_for_one)
+  end
+end
+
+defmodule DatabaseSupervisor do
+  use Supervisor
+ 
+  def start_link(ns) do
+    Supervisor.start_link(__MODULE__, ns )
+  end
+ 
+  def init(ns) do
+    children = [
       worker(Database, [ns]),
-      worker(CustomerService, [ns]),
-      worker(Info, [ns]),
-      worker(Shipper, [ns]),
-      worker(User, [ns]),
-      worker(Order, [ns])
+      supervisor(RestSupervisor, [ns])
     ]
  
     supervise(children, strategy: :rest_for_one)
+  end
+end
+
+defmodule RestSupervisor do
+  use Supervisor
+ 
+  def start_link(ns) do
+    Supervisor.start_link(__MODULE__, ns )
+  end
+ 
+  def init(ns) do
+    children = [
+      supervisor(InfoSupervisor, [ns]),
+	  supervisor(ShipperSupervisor, [ns]),
+	  supervisor(UserOrderSupervisor, [ns])
+    ]
+ 
+    supervise(children, strategy: :one_for_one)
+  end
+end
+
+defmodule InfoSupervisor do
+  use Supervisor
+ 
+  def start_link(ns) do
+    Supervisor.start_link(__MODULE__, ns )
+  end
+ 
+  def init(ns) do
+    children = [
+      worker(Info, [ns])
+    ]
+ 
+    supervise(children, strategy: :one_for_one)
+  end
+end
+
+defmodule UserOrderSupervisor do
+  use Supervisor
+ 
+  def start_link(ns) do
+    Supervisor.start_link(__MODULE__, ns )
+  end
+ 
+  def init(ns) do
+    children = [
+	  worker(Order, [ns]),
+      worker(User, [ns])
+    ]
+ 
+    supervise(children, strategy: :one_for_all)
+  end
+end
+
+defmodule ShipperSupervisor do
+  use Supervisor
+ 
+  def start_link(ns) do
+    Supervisor.start_link(__MODULE__, ns )
+  end
+ 
+  def init(ns) do
+    children = [
+	  worker(Shipper, [ns])
+    ]
+ 
+    supervise(children, strategy: :one_for_one)
+  end
+end
+
+defmodule CustomerSupervisor do
+  use Supervisor
+ 
+  def start_link(ns) do
+    Supervisor.start_link(__MODULE__, ns )
+  end
+ 
+  def init(ns) do
+    children = [
+      worker(CustomerService, [ns])
+    ]
+ 
+    supervise(children, strategy: :one_for_one)
   end
 end
