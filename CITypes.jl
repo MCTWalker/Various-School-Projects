@@ -298,7 +298,7 @@ end
 function type_of_expr( ae::FunDef, env::TypeEnvironment )
   new_env = CTypeEnvironment(ae.formal_parameter, ae.formal_type, env)
   body_expr_type = type_of_expr(ae.fun_body, new_env)
-  return body_expr_type
+  return FunType(ae.formaltype, body_expr_type)
 end
 
 function type_of_expr( ae::FunApp, env::TypeEnvironment )
@@ -342,7 +342,7 @@ end
 function type_of_expr( ae::NFirst, env::TypeEnvironment )
   list_type = type_of_expr(ae.list)
   if same_type(list_type, NListType())
-    return NListType()
+    return NumType()
   else
     throw(LispError("Invalid list passed in to NFirst"))
   end
