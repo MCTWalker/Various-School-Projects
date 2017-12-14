@@ -12,6 +12,8 @@
 
 module CITypes # based on the CI5 interpreter
 
+push!(LOAD_PATH, ".")
+
 using Error
 using Lexer
 export parse, type_of_expr, NumType, BoolType, FunType, NListType
