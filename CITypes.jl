@@ -306,7 +306,7 @@ function type_of_expr( ae::FunApp, env::TypeEnvironment )
   arg_expr_type = type_of_expr(ae.arg_expr, env)
 
   if (typeof(fun_expr_type) == FunType )
-    if same_type(fun_expr_type.arg_type, agr_expr_type)
+    if same_type(fun_expr_type.arg_type, arg_expr_type)
       return fun_expr_type.result_type
     else
       throw(LispError("Argument type must match function argument type"))
