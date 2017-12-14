@@ -298,7 +298,7 @@ end
 function type_of_expr( ae::FunDef, env::TypeEnvironment )
   new_env = CTypeEnvironment(ae.formal_parameter, ae.formal_type, env)
   body_expr_type = type_of_expr(ae.fun_body, new_env)
-  return FunType(ae.formaltype, body_expr_type)
+  return FunType(ae.formal_type, body_expr_type)
 end
 
 function type_of_expr( ae::FunApp, env::TypeEnvironment )
