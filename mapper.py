@@ -12,10 +12,14 @@ import re
 def main(argv):
 	line = sys.stdin.readline()
 	pattern = re.compile("[a-zA-Z][a-zA-Z0-9]*")
+	stopWords = []
+	with open("stop-words.txt") as f:
+		stopWords = [line for line in f]
 	try:
 		while line:
 			for word in pattern.findall(line):
-				print  word.lower() + "\t" + "1"
+				if word not in stopWords:
+					print word.lower() + "\t" + "1"
 			line =  sys.stdin.readline()
 	except "end of file":
 		return None
